@@ -1,0 +1,14 @@
+# Logs
+# Dependency directories
+node_modules/
+# Build outputs
+# Editor directories and files
+.idea/
+backend/.env
+frontend/.env
+
+# lockfiles
+ backend/package-lock.json
+ frontend/package-lock.json
+ yarn.lock
+ pnpm-lock.yaml

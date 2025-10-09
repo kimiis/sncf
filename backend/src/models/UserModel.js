@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db");
+const sequelize = require("../config/Database");
 
-const User_model = sequelize.define("User", {
+const UserModel = sequelize.define("User", {
     user_id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -40,4 +40,4 @@ const User_model = sequelize.define("User", {
     timestamps: false,
 });
 
-module.exports = User_model;
+module.exports = UserModel;

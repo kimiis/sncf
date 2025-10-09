@@ -1,0 +1,44 @@
+CREATE DATABASE “sncf”;
+
+CREATE TABLE "users" (
+    user_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    last_name VARCHAR(20) NOT NULL,
+    first_name VARCHAR(20) NOT NULL,
+    address VARCHAR(50),
+    postal_code VARCHAR(10),
+    city VARCHAR(50),
+    email VARCHAR(50) UNIQUE NOT NULL,
+	password VARCHAR (100) NOT NULL,
+	phone VARCHAR (25),
+	date_of_birth DATE,
+	photo_url VARCHAR(255),
+	created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE favorites_itinary (
+  favorites_itinary_id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  gare_depart VARCHAR(50) NOT NULL,
+  gare_arrivee VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE favorites_gares (
+  favorites_gare_id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  gare_code VARCHAR(8),
+  gare_nom VARCHAR(50),
+  region VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE search_history (
+  search_history_id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  gare_depart VARCHAR(100),
+  gare_arrivee VARCHAR(100),
+  date_recherche DATE,
+  type_train VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+

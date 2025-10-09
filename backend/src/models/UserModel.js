@@ -1,7 +1,8 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/Database");
+const Role = require("./Role");
 
-const UserModel = sequelize.define("User", {
+const User = sequelize.define("User", {
     user_id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -40,4 +41,7 @@ const UserModel = sequelize.define("User", {
     timestamps: false,
 });
 
-module.exports = UserModel;
+Role.hasMany(User, { foreignKey: "role_id", onDelete: "SET NULL" });
+User.belongsTo(Role, { foreignKey: "role_id" });
+
+module.exports = User;

@@ -1,1 +1,11 @@
-node_modules
+# Logs
+# Dependency directories
+node_modules/
+# Build outputs
+# Editor directories and files
+backend/.env
+
+# lockfiles
+ backend/package-lock.json
+ yarn.lock
+ pnpm-lock.yaml

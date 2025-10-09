@@ -1,0 +1,419 @@
+COD_VAR;LIB_VAR;COD_MOD;LIB_MOD
+ACTIVITY;Activité économique;I551;Hôtels et hébergement similaire
+ACTIVITY;Activité économique;I553;Terrains de camping et parcs pour caravanes ou véhicules de loisirs
+ACTIVITY;Activité économique;I552A_I552C;Villages vacances et maisons familiales et Auberges de jeunesse et centres sportifs
+ACTIVITY;Activité économique;I552B;Résidences de tourisme – Résidences hôtelières
+ACTIVITY;Activité économique;I552;Hébergement touristique et autre hébergement de courte durée
+ACTIVITY;Activité économique;I55;Hébergement
+CONF_STATUS;Statut de confidentialité;F;Diffusable
+CONF_STATUS;Statut de confidentialité;C;Confidentiel (secret statistique)
+DECIMALS;Décimales;1;Un
+DECIMALS;Décimales;2;Deux
+DECIMALS;Décimales;0;Zéro
+FREQ;Fréquence;A;Annuel
+FREQ;Fréquence;M;Mensuel
+FREQ;Fréquence;Q;Trimestriel
+HOTEL_STA;Chaine ou indépendant;CI;Chaine
+HOTEL_STA;Chaine ou indépendant;HC;Indépendant
+HOTEL_STA;Chaine ou indépendant;_T;Total
+OBS_STATUS;Statut de l'observation;A;Normale
+OBS_STATUS;Statut de l'observation;P;Valeur provisoire
+OBS_STATUS;Statut de l'observation;O;Valeur manquante (vm)
+OBS_STATUS_FR;Version;D;Définitif
+OBS_STATUS_FR;Version;PROV;Provisoire
+TERRTYPO;Géographie territoriale;5;Autres espaces
+TERRTYPO;Géographie territoriale;4;Urbain de province
+TERRTYPO;Géographie territoriale;1;Ile-de-France
+TERRTYPO;Géographie territoriale;3;Massifs de ski ou massifs de montagne
+TERRTYPO;Géographie territoriale;2;Littoral
+TERRTYPO;Géographie territoriale;N_CST;Non littoral
+TERRTYPO;Géographie territoriale;_T;Total
+TIME_PERIOD;Période temporelle;2022;2022
+TIME_PERIOD;Période temporelle;2024-08;2024-08
+TIME_PERIOD;Période temporelle;2018;2018
+TIME_PERIOD;Période temporelle;2021;2021
+TIME_PERIOD;Période temporelle;2020;2020
+TIME_PERIOD;Période temporelle;2017;2017
+TIME_PERIOD;Période temporelle;2019;2019
+TIME_PERIOD;Période temporelle;2023;2023
+TIME_PERIOD;Période temporelle;2024-07;2024-07
+TIME_PERIOD;Période temporelle;2016;2016
+TIME_PERIOD;Période temporelle;2024-06;2024-06
+TIME_PERIOD;Période temporelle;2015;2015
+TIME_PERIOD;Période temporelle;2014;2014
+TIME_PERIOD;Période temporelle;2014-02;2014-02
+TIME_PERIOD;Période temporelle;2024-05;2024-05
+TIME_PERIOD;Période temporelle;2013;2013
+TIME_PERIOD;Période temporelle;2014-01;2014-01
+TIME_PERIOD;Période temporelle;2012;2012
+TIME_PERIOD;Période temporelle;2024-04;2024-04
+TIME_PERIOD;Période temporelle;2012-06;2012-06
+TIME_PERIOD;Période temporelle;2013-12;2013-12
+TIME_PERIOD;Période temporelle;2011;2011
+TIME_PERIOD;Période temporelle;2024-03;2024-03
+TIME_PERIOD;Période temporelle;2013-11;2013-11
+TIME_PERIOD;Période temporelle;2012-05;2012-05
+TIME_PERIOD;Période temporelle;2024-02;2024-02
+TIME_PERIOD;Période temporelle;2013-10;2013-10
+TIME_PERIOD;Période temporelle;2012-04;2012-04
+TIME_PERIOD;Période temporelle;2012-03;2012-03
+TIME_PERIOD;Période temporelle;2024-01;2024-01
+TIME_PERIOD;Période temporelle;2013-09;2013-09
+TIME_PERIOD;Période temporelle;2012-02;2012-02
+TIME_PERIOD;Période temporelle;2023-12;2023-12
+TIME_PERIOD;Période temporelle;2013-08;2013-08
+TIME_PERIOD;Période temporelle;2012-01;2012-01
+TIME_PERIOD;Période temporelle;2023-11;2023-11
+TIME_PERIOD;Période temporelle;2013-07;2013-07
+TIME_PERIOD;Période temporelle;2011-12;2011-12
+TIME_PERIOD;Période temporelle;2023-10;2023-10
+TIME_PERIOD;Période temporelle;2013-06;2013-06
+TIME_PERIOD;Période temporelle;2023-09;2023-09
+TIME_PERIOD;Période temporelle;2023-08;2023-08
+TIME_PERIOD;Période temporelle;2011-11;2011-11
+TIME_PERIOD;Période temporelle;2013-05;2013-05
+TIME_PERIOD;Période temporelle;2013-04;2013-04
+TIME_PERIOD;Période temporelle;2011-10;2011-10
+TIME_PERIOD;Période temporelle;2023-07;2023-07
+TIME_PERIOD;Période temporelle;2013-03;2013-03
+TIME_PERIOD;Période temporelle;2011-09;2011-09
+TIME_PERIOD;Période temporelle;2023-06;2023-06
+TIME_PERIOD;Période temporelle;2013-02;2013-02
+TIME_PERIOD;Période temporelle;2013-01;2013-01
+TIME_PERIOD;Période temporelle;2023-05;2023-05
+TIME_PERIOD;Période temporelle;2011-08;2011-08
+TIME_PERIOD;Période temporelle;2011-07;2011-07
+TIME_PERIOD;Période temporelle;2023-04;2023-04
+TIME_PERIOD;Période temporelle;2012-12;2012-12
+TIME_PERIOD;Période temporelle;2011-06;2011-06
+TIME_PERIOD;Période temporelle;2023-03;2023-03
+TIME_PERIOD;Période temporelle;2011-05;2011-05
+TIME_PERIOD;Période temporelle;2012-11;2012-11
+TIME_PERIOD;Période temporelle;2023-02;2023-02
+TIME_PERIOD;Période temporelle;2012-10;2012-10
+TIME_PERIOD;Période temporelle;2012-09;2012-09
+TIME_PERIOD;Période temporelle;2011-04;2011-04
+TIME_PERIOD;Période temporelle;2023-01;2023-01
+TIME_PERIOD;Période temporelle;2022-12;2022-12
+TIME_PERIOD;Période temporelle;2011-03;2011-03
+TIME_PERIOD;Période temporelle;2012-08;2012-08
+TIME_PERIOD;Période temporelle;2011-02;2011-02
+TIME_PERIOD;Période temporelle;2012-07;2012-07
+TIME_PERIOD;Période temporelle;2022-11;2022-11
+TIME_PERIOD;Période temporelle;2022-10;2022-10
+TIME_PERIOD;Période temporelle;2011-01;2011-01
+TIME_PERIOD;Période temporelle;2022-09;2022-09
+TIME_PERIOD;Période temporelle;2022-08;2022-08
+TIME_PERIOD;Période temporelle;2022-07;2022-07
+TIME_PERIOD;Période temporelle;2022-06;2022-06
+TIME_PERIOD;Période temporelle;2022-05;2022-05
+TIME_PERIOD;Période temporelle;2022-04;2022-04
+TIME_PERIOD;Période temporelle;2022-03;2022-03
+TIME_PERIOD;Période temporelle;2022-02;2022-02
+TIME_PERIOD;Période temporelle;2022-01;2022-01
+TIME_PERIOD;Période temporelle;2021-12;2021-12
+TIME_PERIOD;Période temporelle;2021-11;2021-11
+TIME_PERIOD;Période temporelle;2021-10;2021-10
+TIME_PERIOD;Période temporelle;2021-09;2021-09
+TIME_PERIOD;Période temporelle;2021-08;2021-08
+TIME_PERIOD;Période temporelle;2021-07;2021-07
+TIME_PERIOD;Période temporelle;2021-06;2021-06
+TIME_PERIOD;Période temporelle;2021-05;2021-05
+TIME_PERIOD;Période temporelle;2021-04;2021-04
+TIME_PERIOD;Période temporelle;2021-03;2021-03
+TIME_PERIOD;Période temporelle;2021-02;2021-02
+TIME_PERIOD;Période temporelle;2021-01;2021-01
+TIME_PERIOD;Période temporelle;2020-12;2020-12
+TIME_PERIOD;Période temporelle;2020-11;2020-11
+TIME_PERIOD;Période temporelle;2020-10;2020-10
+TIME_PERIOD;Période temporelle;2020-09;2020-09
+TIME_PERIOD;Période temporelle;2020-08;2020-08
+TIME_PERIOD;Période temporelle;2020-07;2020-07
+TIME_PERIOD;Période temporelle;2020-06;2020-06
+TIME_PERIOD;Période temporelle;2020-05;2020-05
+TIME_PERIOD;Période temporelle;2020-04;2020-04
+TIME_PERIOD;Période temporelle;2020-03;2020-03
+TIME_PERIOD;Période temporelle;2020-02;2020-02
+TIME_PERIOD;Période temporelle;2020-01;2020-01
+TIME_PERIOD;Période temporelle;2019-12;2019-12
+TIME_PERIOD;Période temporelle;2019-11;2019-11
+TIME_PERIOD;Période temporelle;2019-10;2019-10
+TIME_PERIOD;Période temporelle;2019-09;2019-09
+TIME_PERIOD;Période temporelle;2019-08;2019-08
+TIME_PERIOD;Période temporelle;2019-07;2019-07
+TIME_PERIOD;Période temporelle;2019-06;2019-06
+TIME_PERIOD;Période temporelle;2019-05;2019-05
+TIME_PERIOD;Période temporelle;2019-04;2019-04
+TIME_PERIOD;Période temporelle;2019-03;2019-03
+TIME_PERIOD;Période temporelle;2019-02;2019-02
+TIME_PERIOD;Période temporelle;2019-01;2019-01
+TIME_PERIOD;Période temporelle;2018-12;2018-12
+TIME_PERIOD;Période temporelle;2018-11;2018-11
+TIME_PERIOD;Période temporelle;2018-10;2018-10
+TIME_PERIOD;Période temporelle;2018-09;2018-09
+TIME_PERIOD;Période temporelle;2018-08;2018-08
+TIME_PERIOD;Période temporelle;2018-07;2018-07
+TIME_PERIOD;Période temporelle;2018-06;2018-06
+TIME_PERIOD;Période temporelle;2018-05;2018-05
+TIME_PERIOD;Période temporelle;2018-04;2018-04
+TIME_PERIOD;Période temporelle;2018-03;2018-03
+TIME_PERIOD;Période temporelle;2018-02;2018-02
+TIME_PERIOD;Période temporelle;2018-01;2018-01
+TIME_PERIOD;Période temporelle;2017-12;2017-12
+TIME_PERIOD;Période temporelle;2017-11;2017-11
+TIME_PERIOD;Période temporelle;2017-10;2017-10
+TIME_PERIOD;Période temporelle;2017-09;2017-09
+TIME_PERIOD;Période temporelle;2017-08;2017-08
+TIME_PERIOD;Période temporelle;2017-07;2017-07
+TIME_PERIOD;Période temporelle;2017-06;2017-06
+TIME_PERIOD;Période temporelle;2017-05;2017-05
+TIME_PERIOD;Période temporelle;2017-04;2017-04
+TIME_PERIOD;Période temporelle;2017-03;2017-03
+TIME_PERIOD;Période temporelle;2017-02;2017-02
+TIME_PERIOD;Période temporelle;2017-01;2017-01
+TIME_PERIOD;Période temporelle;2016-12;2016-12
+TIME_PERIOD;Période temporelle;2016-11;2016-11
+TIME_PERIOD;Période temporelle;2016-10;2016-10
+TIME_PERIOD;Période temporelle;2016-09;2016-09
+TIME_PERIOD;Période temporelle;2016-08;2016-08
+TIME_PERIOD;Période temporelle;2016-07;2016-07
+TIME_PERIOD;Période temporelle;2016-06;2016-06
+TIME_PERIOD;Période temporelle;2016-05;2016-05
+TIME_PERIOD;Période temporelle;2016-04;2016-04
+TIME_PERIOD;Période temporelle;2016-03;2016-03
+TIME_PERIOD;Période temporelle;2016-02;2016-02
+TIME_PERIOD;Période temporelle;2016-01;2016-01
+TIME_PERIOD;Période temporelle;2015-12;2015-12
+TIME_PERIOD;Période temporelle;2015-11;2015-11
+TIME_PERIOD;Période temporelle;2015-10;2015-10
+TIME_PERIOD;Période temporelle;2015-09;2015-09
+TIME_PERIOD;Période temporelle;2015-08;2015-08
+TIME_PERIOD;Période temporelle;2015-07;2015-07
+TIME_PERIOD;Période temporelle;2015-06;2015-06
+TIME_PERIOD;Période temporelle;2015-05;2015-05
+TIME_PERIOD;Période temporelle;2015-04;2015-04
+TIME_PERIOD;Période temporelle;2015-03;2015-03
+TIME_PERIOD;Période temporelle;2015-02;2015-02
+TIME_PERIOD;Période temporelle;2015-01;2015-01
+TIME_PERIOD;Période temporelle;2014-12;2014-12
+TIME_PERIOD;Période temporelle;2014-11;2014-11
+TIME_PERIOD;Période temporelle;2014-10;2014-10
+TIME_PERIOD;Période temporelle;2014-09;2014-09
+TIME_PERIOD;Période temporelle;2014-08;2014-08
+TIME_PERIOD;Période temporelle;2014-07;2014-07
+TIME_PERIOD;Période temporelle;2014-06;2014-06
+TIME_PERIOD;Période temporelle;2014-05;2014-05
+TIME_PERIOD;Période temporelle;2014-04;2014-04
+TIME_PERIOD;Période temporelle;2014-03;2014-03
+TIME_PERIOD;Période temporelle;2022-Q3;2022-Q3
+TIME_PERIOD;Période temporelle;2022-Q2;2022-Q2
+TIME_PERIOD;Période temporelle;2022-Q1;2022-Q1
+TIME_PERIOD;Période temporelle;2021-Q4;2021-Q4
+TIME_PERIOD;Période temporelle;2021-Q3;2021-Q3
+TIME_PERIOD;Période temporelle;2021-Q2;2021-Q2
+TIME_PERIOD;Période temporelle;2021-Q1;2021-Q1
+TIME_PERIOD;Période temporelle;2020-Q4;2020-Q4
+TIME_PERIOD;Période temporelle;2020-Q3;2020-Q3
+TIME_PERIOD;Période temporelle;2020-Q2;2020-Q2
+TIME_PERIOD;Période temporelle;2020-Q1;2020-Q1
+TIME_PERIOD;Période temporelle;2019-Q4;2019-Q4
+TIME_PERIOD;Période temporelle;2019-Q3;2019-Q3
+TIME_PERIOD;Période temporelle;2019-Q2;2019-Q2
+TIME_PERIOD;Période temporelle;2019-Q1;2019-Q1
+TIME_PERIOD;Période temporelle;2018-Q4;2018-Q4
+TIME_PERIOD;Période temporelle;2018-Q3;2018-Q3
+TIME_PERIOD;Période temporelle;2018-Q2;2018-Q2
+TIME_PERIOD;Période temporelle;2018-Q1;2018-Q1
+TIME_PERIOD;Période temporelle;2017-Q4;2017-Q4
+TIME_PERIOD;Période temporelle;2017-Q3;2017-Q3
+TIME_PERIOD;Période temporelle;2017-Q2;2017-Q2
+TIME_PERIOD;Période temporelle;2017-Q1;2017-Q1
+TIME_PERIOD;Période temporelle;2016-Q4;2016-Q4
+TIME_PERIOD;Période temporelle;2016-Q3;2016-Q3
+TIME_PERIOD;Période temporelle;2016-Q2;2016-Q2
+TIME_PERIOD;Période temporelle;2016-Q1;2016-Q1
+TIME_PERIOD;Période temporelle;2015-Q4;2015-Q4
+TIME_PERIOD;Période temporelle;2015-Q3;2015-Q3
+TIME_PERIOD;Période temporelle;2015-Q2;2015-Q2
+TIME_PERIOD;Période temporelle;2015-Q1;2015-Q1
+TIME_PERIOD;Période temporelle;2014-Q4;2014-Q4
+TIME_PERIOD;Période temporelle;2014-Q3;2014-Q3
+TIME_PERIOD;Période temporelle;2014-Q2;2014-Q2
+TIME_PERIOD;Période temporelle;2014-Q1;2014-Q1
+TIME_PERIOD;Période temporelle;2013-Q4;2013-Q4
+TIME_PERIOD;Période temporelle;2013-Q3;2013-Q3
+TIME_PERIOD;Période temporelle;2013-Q2;2013-Q2
+TIME_PERIOD;Période temporelle;2013-Q1;2013-Q1
+TIME_PERIOD;Période temporelle;2012-Q4;2012-Q4
+TIME_PERIOD;Période temporelle;2012-Q3;2012-Q3
+TIME_PERIOD;Période temporelle;2012-Q2;2012-Q2
+TIME_PERIOD;Période temporelle;2012-Q1;2012-Q1
+TIME_PERIOD;Période temporelle;2011-Q4;2011-Q4
+TIME_PERIOD;Période temporelle;2011-Q3;2011-Q3
+TIME_PERIOD;Période temporelle;2011-Q2;2011-Q2
+TIME_PERIOD;Période temporelle;2011-Q1;2011-Q1
+TIME_PERIOD;Période temporelle;2024-09;2024-09
+TIME_PERIOD;Période temporelle;2024-10;2024-10
+TIME_PERIOD;Période temporelle;2024-11;2024-11
+TIME_PERIOD;Période temporelle;2024-12;2024-12
+TIME_PERIOD;Période temporelle;2025-01;2025-01
+TIME_PERIOD;Période temporelle;2024;2024
+TIME_PERIOD;Période temporelle;2025-02;2025-02
+TIME_PERIOD;Période temporelle;2025-03;2025-03
+TIME_PERIOD;Période temporelle;2025-04;2025-04
+TIME_PERIOD;Période temporelle;2025-05;2025-05
+TIME_PERIOD;Période temporelle;2025-06;2025-06
+TIME_PERIOD;Période temporelle;2025-07;2025-07
+TOUR_MEASURE;Mesure du tourisme;DAYS_STAY;Nombre de jours du séjour
+TOUR_MEASURE;Mesure du tourisme;NUI;Nombre de nuitées
+TOUR_MEASURE;Mesure du tourisme;ARR;Nombre d’arrivées
+TOUR_MEASURE;Mesure du tourisme;NON_RESIDENT_NIGHTSPENT_RATIO;Part des nuitées provenant de touristes étrangers (%)
+TOUR_MEASURE;Mesure du tourisme;PLACE_USED;Nombre de places occupées
+TOUR_MEASURE;Mesure du tourisme;PLACE_AVAIL;Nombre de places offerts 
+TOUR_MEASURE;Mesure du tourisme;UNIT_LOC;Nombre d’établissements
+TOUR_MEASURE;Mesure du tourisme;PLACE_OCCUPANCY_RATE;Taux d’occupation des places (%)
+TOUR_RESID;Résidence du touriste;1_X_250;Etranger 
+TOUR_RESID;Résidence du touriste;380;Italie
+TOUR_RESID;Résidence du touriste;2;Afrique
+TOUR_RESID;Résidence du touriste;TOUR_PMO;Proche et Moyen Orient
+TOUR_RESID;Résidence du touriste;392;Japon
+TOUR_RESID;Résidence du touriste;724;Espagne
+TOUR_RESID;Résidence du touriste;643;Russie
+TOUR_RESID;Résidence du touriste;840;Etats-Unis d'Amérique
+TOUR_RESID;Résidence du touriste;528;Pays-Bas
+TOUR_RESID;Résidence du touriste;142;Asie
+TOUR_RESID;Résidence du touriste;756;Suisse
+TOUR_RESID;Résidence du touriste;156;Chine
+TOUR_RESID;Résidence du touriste;150;Europe
+TOUR_RESID;Résidence du touriste;826;Royaume-Uni
+TOUR_RESID;Résidence du touriste;19;Amériques
+TOUR_RESID;Résidence du touriste;56;Belgique
+TOUR_RESID;Résidence du touriste;276;Allemagne
+TOUR_RESID;Résidence du touriste;5_13;Amérique centrale et du sud
+TOUR_RESID;Résidence du touriste;250;France
+TOUR_RESID;Résidence du touriste;_T;Total
+UNIT_LOC_RANKING;Classement de l'établissement touristique;3;3 étoiles
+UNIT_LOC_RANKING;Classement de l'établissement touristique;4T5;4 et 5 étoiles
+UNIT_LOC_RANKING;Classement de l'établissement touristique;1T2;1 et 2 étoiles
+UNIT_LOC_RANKING;Classement de l'établissement touristique;NC;Non classé
+UNIT_LOC_RANKING;Classement de l'établissement touristique;C;Classé
+UNIT_LOC_RANKING;Classement de l'établissement touristique;_T;Total
+UNIT_MULT;Quantité d'unités (en puissance de 10);0;Unités
+UNIT_MULT;Quantité d'unités (en puissance de 10);3;Milliers
+GEO;Géographie;82;Tarn-et-Garonne
+GEO;Géographie;973;Guyane
+GEO;Géographie;59;Nord
+GEO;Géographie;73;Savoie
+GEO;Géographie;88;Vosges
+GEO;Géographie;55;Meuse
+GEO;Géographie;18;Cher
+GEO;Géographie;24;Dordogne
+GEO;Géographie;58;Nièvre
+GEO;Géographie;35;Ille-et-Vilaine
+GEO;Géographie;12;Aveyron
+GEO;Géographie;44;Loire-Atlantique
+GEO;Géographie;47;Lot-et-Garonne
+GEO;Géographie;91;Essonne
+GEO;Géographie;28;Normandie
+GEO;Géographie;08;Ardennes
+GEO;Géographie;28;Eure-et-Loir
+GEO;Géographie;33;Gironde
+GEO;Géographie;2A;Corse-du-Sud
+GEO;Géographie;07;Ardèche
+GEO;Géographie;52;Pays de la Loire
+GEO;Géographie;27;Eure
+GEO;Géographie;974;La Réunion
+GEO;Géographie;38;Isère
+GEO;Géographie;22;Côtes-d'Armor
+GEO;Géographie;57;Moselle
+GEO;Géographie;46;Lot
+GEO;Géographie;F;France
+GEO;Géographie;69;Rhône
+GEO;Géographie;44;Grand Est
+GEO;Géographie;66;Pyrénées-Orientales
+GEO;Géographie;21;Côte-d'Or
+GEO;Géographie;92;Hauts-de-Seine
+GEO;Géographie;53;Mayenne
+GEO;Géographie;36;Indre
+GEO;Géographie;93;Provence-Alpes-Côte d'Azur
+GEO;Géographie;85;Vendée
+GEO;Géographie;56;Morbihan
+GEO;Géographie;52;Haute-Marne
+GEO;Géographie;54;Meurthe-et-Moselle
+GEO;Géographie;65;Hautes-Pyrénées
+GEO;Géographie;60;Oise
+GEO;Géographie;70;Haute-Saône
+GEO;Géographie;84;Vaucluse
+GEO;Géographie;94;Corse
+GEO;Géographie;30;Gard
+GEO;Géographie;39;Jura
+GEO;Géographie;17;Charente-Maritime
+GEO;Géographie;06;Alpes-Maritimes
+GEO;Géographie;61;Orne
+GEO;Géographie;80;Somme
+GEO;Géographie;02;Aisne
+GEO;Géographie;81;Tarn
+GEO;Géographie;14;Calvados
+GEO;Géographie;10;Aube
+GEO;Géographie;84;Auvergne-Rhône-Alpes
+GEO;Géographie;32;Gers
+GEO;Géographie;41;Loir-et-Cher
+GEO;Géographie;64;Pyrénées-Atlantiques
+GEO;Géographie;83;Var
+GEO;Géographie;72;Sarthe
+GEO;Géographie;32;Hauts-de-France
+GEO;Géographie;40;Landes
+GEO;Géographie;11;Île-de-France
+GEO;Géographie;43;Haute-Loire
+GEO;Géographie;48;Lozère
+GEO;Géographie;03;Allier
+GEO;Géographie;90;Territoire de Belfort
+GEO;Géographie;976;Mayotte
+GEO;Géographie;16;Charente
+GEO;Géographie;FM;France métropolitaine
+GEO;Géographie;972;Martinique
+GEO;Géographie;75;Paris
+GEO;Géographie;49;Maine-et-Loire
+GEO;Géographie;05;Hautes-Alpes
+GEO;Géographie;95;Val-d'Oise
+GEO;Géographie;13;Bouches-du-Rhône
+GEO;Géographie;29;Finistère
+GEO;Géographie;26;Drôme
+GEO;Géographie;04;Alpes-de-Haute-Provence
+GEO;Géographie;67;Bas-Rhin
+GEO;Géographie;09;Ariège
+GEO;Géographie;77;Seine-et-Marne
+GEO;Géographie;11;Aude
+GEO;Géographie;23;Creuse
+GEO;Géographie;51;Marne
+GEO;Géographie;89;Yonne
+GEO;Géographie;74;Haute-Savoie
+GEO;Géographie;53;Bretagne
+GEO;Géographie;68;Haut-Rhin
+GEO;Géographie;42;Loire
+GEO;Géographie;71;Saône-et-Loire
+GEO;Géographie;15;Cantal
+GEO;Géographie;93;Seine-Saint-Denis
+GEO;Géographie;34;Hérault
+GEO;Géographie;86;Vienne
+GEO;Géographie;50;Manche
+GEO;Géographie;01;Ain
+GEO;Géographie;27;Bourgogne-Franche-Comté
+GEO;Géographie;37;Indre-et-Loire
+GEO;Géographie;31;Haute-Garonne
+GEO;Géographie;2B;Haute-Corse
+GEO;Géographie;25;Doubs
+GEO;Géographie;76;Seine-Maritime
+GEO;Géographie;94;Val-de-Marne
+GEO;Géographie;75;Nouvelle-Aquitaine
+GEO;Géographie;76;Occitanie
+GEO;Géographie;63;Puy-de-Dôme
+GEO;Géographie;62;Pas-de-Calais
+GEO;Géographie;971;Guadeloupe
+GEO;Géographie;45;Loiret
+GEO;Géographie;19;Corrèze
+GEO;Géographie;87;Haute-Vienne
+GEO;Géographie;79;Deux-Sèvres
+GEO;Géographie;24;Centre-Val de Loire
+GEO;Géographie;78;Yvelines
+GEO;Géographie;DOM;Départements d'Outre-mer

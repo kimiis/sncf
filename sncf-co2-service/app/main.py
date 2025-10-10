@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd #type: ignore
 import os
 
 # Chemin vers le fichier xlsx dans le dossier repository/data (un niveau au-dessus)

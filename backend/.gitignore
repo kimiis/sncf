@@ -3,7 +3,7 @@
 node_modules/
 # Build outputs
 # Editor directories and files
-backend/.env
+.env
 
 # lockfilesgit add .
  backend/package-lock.json

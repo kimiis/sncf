@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/Database");
+const { sequelize } = require("../config/Database");
+
 const User = require("./UserModel");
 
 const FavoriteItinary = sequelize.define("FavoriteItinary", {

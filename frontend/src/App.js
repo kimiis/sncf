@@ -2,9 +2,12 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 
 import Home from "./pages/Home.jsx";
+import Index from "./pages/Index.jsx";
 
 import PrivateRoute from "./components/PrivateRoute";
 import './index.css';
+import "./styles/variable.css";
+
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 function AppWrapper() {
@@ -25,7 +28,7 @@ function App() {
         <Routes>
           {/* Pages publiques */}
           <Route path="/" element={<Home />} />
-          {/*<Route path="/login" element={<Login />} />*/}
+          <Route path="/index" element={<Index />} />
 
           {/*/!* Pages accessibles à tout utilisateur connecté *!/*/}
           {/*<Route element={<PrivateRoute />}>*/}

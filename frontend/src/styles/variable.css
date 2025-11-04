@@ -1,0 +1,18 @@
+/*PAGE HOME*/
+/*Logo*/
+.imgHome{
+    width: 12em;
+}
+.home-container{
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.slogan{
+    text-align: center;
+    font-family: "Montserrat", sans-serif;
+    margin-block: 0;
+    font-size: 1.2em;
+    color: #606F74
+}

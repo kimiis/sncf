@@ -36,3 +36,19 @@
     transform: rotate(360deg);
   }
 }
+#root {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+  background-color: #DCF9E7;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #DCF9E7;
+}

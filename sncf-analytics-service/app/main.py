@@ -7,10 +7,9 @@ from math import radians, sin, cos, sqrt, atan2
 
 app = FastAPI()
 
-# Chemins vers fichiers Excel
-tarif_file = "../../Data/DataLake/processed/tarifs-tgv.xlsx"
-co2_file = "../../Data/DataLake/processed/emission-co2-perimetre-usage.xlsx"
-gares_file = "../../Data/DataLake/processed/gares.xlsx"
+tarif_file = "tarifs-tgv.xlsx"
+co2_file = "emission-co2-perimetre-usage.xlsx"
+gares_file = "gares.xlsx"
 
 # Chargement données Excel
 df_tarif = pd.read_excel(tarif_file)

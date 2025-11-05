@@ -20,15 +20,9 @@ function Home() {
             <img
                 className="imgHome"
                 src={logo}
-                alt="Logo SNCF Zen"
+                alt="Logo Go eco"
             />
             <h1 className= "slogan">Voyager mieux c'est déjà changer le monde</h1>
-            {/*<button*/}
-            {/*    className="home-button"*/}
-            {/*    onClick={() => navigate("/login")}*/}
-            {/*>*/}
-            {/*    Commencez l&#39;expérience OMELIA*/}
-            {/*</button>*/}
         </div>
     );
 }

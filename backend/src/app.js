@@ -21,6 +21,6 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Routes principales
-app.use("/", mainRoutes);
+app.use("/api", mainRoutes);
 
 module.exports = app;

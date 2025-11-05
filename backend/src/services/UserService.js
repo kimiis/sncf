@@ -26,6 +26,7 @@ class UserService {
     }
 
     //Fonction pour appeler la fonction createUserRepository dans le userRepository avec toutes les datas pour créer un client
+    // services/UserService.js
     async createUser(userData) {
         const {
             civilite,
@@ -40,18 +41,15 @@ class UserService {
             role_id: providedRoleId,
         } = userData;
 
-        // Déterminer le rôle, si pas de rôle défini alors par défaut le rôle sera client
+        // Déterminer le rôle (fallback = "user")
         const role_id = providedRoleId ?? (await roleRepository.getRoleIdByName("user"));
         const role = await roleRepository.getRoleById(role_id);
-        if (!role) {
-            throw new Error(`Rôle avec l'ID ${role_id} introuvable.`);
-        }
+        if (!role) throw new Error(`Rôle avec l'ID ${role_id} introuvable.`);
 
-        // Hashage du mot de passe, un client n'a pas de mdp alors que l'employé si
-        const requiresPassword = ["admin", "user"].includes(role.role_name);
+        // Hasher le mot de passe
+        const bcrypt = require("bcryptjs");
         const crypto = require("crypto");
-
-        // Génère un mot de passe de 16 caractères aléatoires
+        const requiresPassword = ["admin", "user"].includes(role.name); // adapte si besoin
         const generatedPassword = rawPassword || crypto.randomBytes(8).toString("hex");
         const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
@@ -70,13 +68,12 @@ class UserService {
             date_of_birth,
             password: hashedPassword,
             photo_url,
+            role_id,
         });
-
-        // Association au rôle
-        await userRoleRepository.linkUserToRole(newUser.user_id, role_id);
 
         return newUser;
     }
+
 
     //Fonction pour appeler la fonction patchUserRepository dans le userRepository
     async patchUserService(user_id, updatedFields) {

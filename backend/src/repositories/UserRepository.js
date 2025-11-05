@@ -1,4 +1,4 @@
-const User = require("../models/UsersModel");
+const User = require("../models/UserModel");
 const bcrypt = require("bcryptjs");
 const Role = require("../models/RoleModel");
 const { Op, Sequelize } = require("sequelize");
@@ -46,21 +46,11 @@ class UserRepository {
         return user;
     }
 
-    //Fonction pour créer un user
-    async createUserRepository(userData) {
-        try {
-            // Hasher le mot de passe avant d'insérer l'utilisateur
-            const salt = await bcrypt.genSalt(10);
-            userData.password = await bcrypt.hash(userData.password, salt);
-
-            const user = await User.create(userData);
-            return user;
-        } catch (error) {
-            console.error("Erreur lors de la création de l'utilisateur :", error);
-            throw new Error("Erreur lors de la création de l'utilisateur.");
-        }
+    //Fonction pour retrouver un user via son email
+    async findByEmail(email) {
+        return User.findOne({ where: { email } });
     }
-
+    //Fonction pour créer un user
     async createUser(data) {
         return User.create(data);
     }

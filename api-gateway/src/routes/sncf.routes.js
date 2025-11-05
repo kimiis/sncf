@@ -1,19 +1,20 @@
 import express from "express";
 import axios from "axios";
-import { cacheMiddleware } from "../middlewares/cache.js";
 
 const router = express.Router();
-const SNCF_URL = process.env.SNCF_SERVICE_URL || "http://localhost:3001";
 
-router.get("/trains", cacheMiddleware(60), async (req, res) => {
+// === Service CO2 ===
+router.post("/co2/trajet", async (req, res) => {
     try {
-        const { data } = await axios.get(`${SNCF_URL}/trains`, {
-            params: req.query,
-        });
-        res.json(data);
+        // Appel au microservice FastAPI (sncf-co2-service)
+        const response = await axios.post(
+            process.env.CO2_SERVICE_URL || "http://localhost:5002/co2/trajet",
+            req.body
+        );
+        res.json(response.data);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: "Erreur lors de la récupération des trains" });
+        console.error("Erreur vers service CO2:", err.message);
+        res.status(500).json({ error: "Erreur de connexion au service CO2" });
     }
 });
 

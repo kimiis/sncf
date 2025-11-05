@@ -4,11 +4,11 @@ import train from "../assets/train-removebg-preview.png";
 import coteAzur from "../assets/cote-azur.png";
 import annecy from "../assets/annecy.png"
 import "../styles/index.css";
+import { useNavigate } from "react-router-dom";
 
 function Index() {
     const [favoris, setFavoris] = useState(false);
     const [slideIndex, setSlideIndex] = useState(0);
-
     const slides = [
         {
             image: annecy,
@@ -19,6 +19,19 @@ function Index() {
             text: "La Côte d’Azur sans voiture",
         },
     ];
+
+    // Barre de recherche
+    const [depart, setDepart] = useState("");
+    const [arrivee, setArrivee] = useState("");
+    const [date, setDate] = useState("");
+    const navigate = useNavigate();
+
+    const handleSearch = () => {
+        const fakeDistance = 500;
+        navigate("/resultat", {
+            state: { depart, arrivee, date, distance: fakeDistance },
+        });
+    };
 
     // Carrousel (change toutes les 4 secondes)
     useEffect(() => {
@@ -36,7 +49,7 @@ function Index() {
                     <input type="text" className="search-placeholder" placeholder="Gare de départ"/>
                     <input type="text" className="search-placeholder" placeholder="Gare d'arrivée"/>
                     <input type="date"/>
-                    <button className="search-btn">
+                    <button className="search-btn" onClick={handleSearch}>
                         <FaSearch/>
                     </button>
                 </div>

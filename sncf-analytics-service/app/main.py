@@ -1,18 +1,46 @@
-import streamlit as st
+from fastapi import FastAPI, HTTPException, Query
 import pandas as pd
-import requests
 import base64
+import requests
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
-from streamlit_folium import st_folium
-import folium
 
-# Chemins relatifs
-tarif_file = "../../DATA/DATALAKE/Processed/tarifs-tgv.xlsx"
-co2_file = "../../DATA/DATALAKE/Processed/emission-co2-perimetre-usage.xlsx"
-gares_file = "../../DATA/DATALAKE/Processed/gares.xlsx"
+app = FastAPI()
 
-st.title("Trajets avec correspondances - Durée, prix, CO₂ & carte SNCF")
+tarif_file = "tarifs-tgv.xlsx"
+co2_file = "emission-co2-perimetre-usage.xlsx"
+gares_file = "gares.xlsx"
+
+# Chargement données Excel
+df_tarif = pd.read_excel(tarif_file)
+df_tarif.dropna(subset=['Gare origine', 'Gare destination',
+                        'Gare origine - code UIC', 'Gare destination - code UIC'], inplace=True)
+
+df_co2 = pd.read_excel(co2_file)
+df_co2.dropna(subset=['Origine_uic', 'Destination_uic'], inplace=True)
+
+df_gares = pd.read_excel(gares_file)
+
+# Auth API SNCF
+api_key = '2d5f9bc9-9eb2-471b-bba8-24d542cf79ae'
+token = base64.b64encode(f"{api_key}:".encode()).decode()
+headers = {'Authorization': f'Basic {token}'}
+
+def get_code_uic(station_name):
+    serie = df_gares.loc[df_gares['LIBELLE'].str.lower() == station_name.lower(), 'CODE_UIC']
+    if len(serie) == 0:
+        return None
+    return int(serie.values[0])
+
+def get_coords(code_uic):
+    geo = df_gares.loc[df_gares['CODE_UIC'] == code_uic, 'Geo Point'].values
+    if len(geo) == 0:
+        return None, None
+    latlon_str = geo[0]
+    if isinstance(latlon_str, str) and ',' in latlon_str:
+        lat, lon = [float(x.strip()) for x in latlon_str.split(",")]
+        return lat, lon
+    return None, None
 
 def distance_haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -22,22 +50,9 @@ def distance_haversine(lat1, lon1, lat2, lon2):
     lon2_rad = radians(lon2)
     dlat = lat2_rad - lat1_rad
     dlon = lon2_rad - lon1_rad
-    a = sin(dlat/2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon/2)**2
+    a = sin(dlat/2)**2 + cos(lat1_rad)*cos(lat2_rad)*sin(dlon/2)**2
     c = 2 * atan2(sqrt(a), sqrt(1-a))
     return R * c
-
-def get_coords(df_gares, code_uic):
-    try:
-        code_uic_int = int(code_uic)
-    except (ValueError, TypeError):
-        return None, None
-    geo = df_gares.loc[df_gares['CODE_UIC'] == code_uic_int, 'Geo Point'].values
-    if len(geo) > 0:
-        latlon_str = geo[0]
-        if isinstance(latlon_str, str) and ',' in latlon_str:
-            lat, lon = [float(x.strip()) for x in latlon_str.split(",")]
-            return lat, lon
-    return None, None
 
 def estime_co2_train(distance_km):
     return 0.0194 * distance_km
@@ -54,146 +69,76 @@ def get_full_journey(from_code, to_code):
     }
     response = requests.get('https://api.sncf.com/v1/coverage/sncf/journeys',
                             params=params, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        journeys = data.get('journeys', [])
-        if journeys:
-            journey = journeys[0]
-            sections = journey.get('sections', [])
-            legs_info = []
-            for section in sections:
-                if section.get('type') in ('public_transport', 'ride'):
-                    from_sp = section['from']['stop_point']
-                    to_sp = section['to']['stop_point']
-                    legs_info.append({
-                        'from_name': from_sp['name'],
-                        'from_uic': from_sp['id'].split(':')[-1],
-                        'to_name': to_sp['name'],
-                        'to_uic': to_sp['id'].split(':')[-1],
-                        'departure_time': section['from'].get('departure_date_time', ''),
-                        'arrival_time': section['to'].get('arrival_date_time', ''),
-                        'duration': section.get('duration', 0)
-                    })
-            return legs_info
-    return None
+    if response.status_code != 200:
+        raise HTTPException(status_code=503, detail="Erreur API SNCF")
+    data = response.json()
+    journeys = data.get('journeys', [])
+    if not journeys:
+        raise HTTPException(status_code=404, detail="Aucun trajet trouvé via l’API SNCF")
+    return journeys[0]
 
-df_tarif = pd.read_excel(tarif_file)
-df_tarif.dropna(subset=['Gare origine', 'Gare destination',
-                        'Gare origine - code UIC', 'Gare destination - code UIC'], inplace=True)
-gares_list = sorted(set(df_tarif['Gare origine']) | set(df_tarif['Gare destination']))
+@app.get("/trajet")
+def trajet(from_city: str = Query(..., description="Nom gare départ"),
+           to_city: str = Query(..., description="Nom gare arrivée")):
 
-df_co2 = pd.read_excel(co2_file)
-df_co2.dropna(subset=['Origine_uic', 'Destination_uic'], inplace=True)
+    # Obtenir codes UIC
+    from_code = get_code_uic(from_city)
+    to_code = get_code_uic(to_city)
+    if from_code is None or to_code is None:
+        raise HTTPException(status_code=404, detail="Code UIC introuvable pour gare départ ou arrivée")
 
-df_gares = pd.read_excel(gares_file)
+    # Infos tarifs
+    lignes = df_tarif[(df_tarif['Gare origine - code UIC'] == from_code) &
+                      (df_tarif['Gare destination - code UIC'] == to_code)]
+    tarif_dispo = not lignes.empty
+    prix_moyen = None
+    if tarif_dispo:
+        prix_min = lignes['Prix minimum'].mean()
+        prix_max = lignes['Prix maximum'].mean()
+        prix_moyen = (prix_min + prix_max) / 2
 
-# Valeurs par défaut
-default_from = "Nantes"
-default_to_options = [g for g in gares_list if "Montparnasse" in g]
-default_to = default_to_options[0] if default_to_options else gares_list[0]
+    # Trajet API SNCF
+    journey = get_full_journey(from_code, to_code)
+    total_duration = journey.get('duration', 0)
+    hours = total_duration // 3600
+    minutes = (total_duration % 3600) // 60
 
-idx_from = gares_list.index(default_from) if default_from in gares_list else 0
-idx_to = gares_list.index(default_to) if default_to in gares_list else 1 if len(gares_list) > 1 else 0
-
-from_choice = st.selectbox("Choisir la gare de départ (ex. Nantes)", gares_list, index=idx_from)
-to_choice = st.selectbox("Choisir la gare d'arrivée (ex. Paris Montparnasse 1 ou 2)", gares_list, index=idx_to)
-
-api_key = '2d5f9bc9-9eb2-471b-bba8-24d542cf79ae'
-token = base64.b64encode(f"{api_key}:".encode()).decode()
-headers = {'Authorization': f'Basic {token}'}
-
-if 'calcul_done' not in st.session_state:
-    st.session_state.calcul_done = False
-
-if st.button("Calculer"):
-    st.session_state.calcul_done = True
-
-if st.session_state.calcul_done:
-    lignes = df_tarif[(df_tarif['Gare origine'] == from_choice) &
-                      (df_tarif['Gare destination'] == to_choice)]
-    
-    tarif_disponible = True
-    if lignes.empty:
-        st.warning("Aucun tarif trouvé pour cette liaison.")
-        tarif_disponible = False
-
-    code_from = None
-    code_to = None
-    if tarif_disponible:
-        code_from = lignes['Gare origine - code UIC'].values[0]
-        code_to = lignes['Gare destination - code UIC'].values[0]
+    # CO2 + distance
+    co2_ligne = df_co2[(df_co2['Origine_uic'] == from_code) & (df_co2['Destination_uic'] == to_code)]
+    if not co2_ligne.empty:
+        distance = co2_ligne["Distance entre les gares"].values[0]
+        train_co2 = co2_ligne["Train - Empreinte carbone (kgCO2e)"].values[0]
+        voiture_co2 = co2_ligne["Voiture thermique (2,2 pers.) - Empreinte carbone (kgCO2e)"].values[0]
+        if pd.isnull(train_co2):
+            train_co2 = estime_co2_train(distance)
+        if pd.isnull(voiture_co2):
+            voiture_co2 = estime_co2_voiture(distance)
     else:
-        code_from_serie = df_gares.loc[df_gares['LIBELLE'] == from_choice, 'CODE_UIC']
-        code_to_serie = df_gares.loc[df_gares['LIBELLE'] == to_choice, 'CODE_UIC']
-        if len(code_from_serie) == 0 or len(code_to_serie) == 0:
-            st.error("Impossible de retrouver les codes UIC pour l'une des gares.")
-            st.stop()
-        code_from = int(code_from_serie.values[0])
-        code_to = int(code_to_serie.values[0])
-
-    legs = get_full_journey(code_from, code_to)
-    if not legs:
-        st.warning("Aucun trajet trouvé via l’API SNCF.")
-    else:
-        total_duration = sum(leg['duration'] for leg in legs if leg['duration'])
-        hours = total_duration // 3600
-        minutes = (total_duration % 3600) // 60
-        st.success(f"Durée totale : {hours}h{minutes}mn")
-
-        st.markdown("### Étapes du trajet :")
-        for i, leg in enumerate(legs):
-            dep = leg['from_name']
-            arr = leg['to_name']
-            dep_time = leg['departure_time']
-            arr_time = leg['arrival_time']
-            dur_sec = leg['duration']
-            h = dur_sec // 3600 if dur_sec else 0
-            m = (dur_sec % 3600) // 60 if dur_sec else 0
-            st.write(f"Étape {i+1}: {dep} → {arr} | départ: {dep_time} arrivée: {arr_time} | durée {h}h{m}mn")
-
-        if tarif_disponible:
-            prix_min = lignes['Prix minimum'].mean()
-            prix_max = lignes['Prix maximum'].mean()
-            prix_moyen = (prix_min + prix_max) / 2
-            st.info(f"Prix moyen estimé (liaison complète) : {prix_moyen:.2f} €")
+        # Estimations à vol d'oiseau
+        lat1, lon1 = get_coords(from_code)
+        lat2, lon2 = get_coords(to_code)
+        if None in (lat1, lon1, lat2, lon2):
+            distance = None
+            train_co2 = None
+            voiture_co2 = None
         else:
-            st.info("Pas de tarif disponible pour cette liaison.")
+            distance = distance_haversine(lat1, lon1, lat2, lon2)
+            train_co2 = estime_co2_train(distance)
+            voiture_co2 = estime_co2_voiture(distance)
 
-        co2_ligne = df_co2[(df_co2['Origine_uic'] == int(code_from)) & (df_co2['Destination_uic'] == int(code_to))]
-        distance = None
-        if not co2_ligne.empty:
-            distance = co2_ligne["Distance entre les gares"].values[0]
-            st.info(f"Distance (trajet SNCF) : {distance:.1f} km")
-            train_co2 = co2_ligne["Train - Empreinte carbone (kgCO2e)"].values[0]
-            car_co2 = co2_ligne["Voiture thermique (2,2 pers.) - Empreinte carbone (kgCO2e)"].values[0]
-            if not pd.isnull(train_co2):
-                st.info(f"CO₂ Train : {train_co2:.2f} kg")
-            else:
-                st.info(f"CO₂ Train estimé : {estime_co2_train(distance):.2f} kg")
-            if not pd.isnull(car_co2):
-                st.info(f"CO₂ Voiture : {car_co2:.2f} kg")
-            else:
-                st.info(f"CO₂ Voiture estimé : {estime_co2_voiture(distance):.2f} kg")
-        else:
-            lat1, lon1 = get_coords(df_gares, code_from)
-            lat2, lon2 = get_coords(df_gares, code_to)
-            if None not in (lat1, lon1, lat2, lon2):
-                distance = distance_haversine(lat1, lon1, lat2, lon2)
-                st.info(f"Distance estimée à vol d'oiseau : {distance:.1f} km")
-                st.info(f"CO₂ Train estimé : {estime_co2_train(distance):.2f} kg")
-                st.info(f"CO₂ Voiture estimé : {estime_co2_voiture(distance):.2f} kg")
+    # Coordonnées gares
+    lat_dep, lon_dep = get_coords(from_code)
+    lat_arr, lon_arr = get_coords(to_code)
 
-        # Carte simple 2 points et tracé droit bleu
-        lat1, lon1 = get_coords(df_gares, code_from)
-        lat2, lon2 = get_coords(df_gares, code_to)
-        if None not in (lat1, lon1, lat2, lon2):
-            m = folium.Map(location=[(lat1 + lat2) / 2, (lon1 + lon2) / 2], zoom_start=6)
-            folium.Marker([lat1, lon1], popup=from_choice, icon=folium.Icon(color='blue')).add_to(m)
-            folium.Marker([lat2, lon2], popup=to_choice, icon=folium.Icon(color='red')).add_to(m)
-            folium.PolyLine([[lat1, lon1], [lat2, lon2]], color="blue", weight=5, opacity=0.7).add_to(m)
-            st.markdown("### Carte du trajet simple")
-            st_folium(m, width=700, height=500)
-        else:
-            st.warning("Coordonnées GPS manquantes, impossible d'afficher la carte.")
-else:
-    st.info("Veuillez saisir les gares et cliquer sur Calculer.")
+    return {
+        "from_city": from_city,
+        "to_city": to_city,
+        "distance_km": distance,
+        "duree": f"{hours}h{minutes}mn",
+        "prix_moyen": prix_moyen,
+        "co2_train_kg": train_co2,
+        "co2_voiture_kg": voiture_co2,
+        "coordonnees_depart": {"latitude": lat_dep, "longitude": lon_dep},
+        "coordonnees_arrivee": {"latitude": lat_arr, "longitude": lon_arr},
+        "trajet_api_sncf_detail": journey
+    }

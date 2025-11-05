@@ -5,6 +5,7 @@ import Home from "./pages/Home.jsx";
 import Index from "./pages/Index.jsx";
 import NavBar from "./components/NavBar.jsx";
 import Profil from "./pages/Profil.jsx";
+import SearchResult from "./pages/SearchResult.jsx";
 
 import PrivateRoute from "./components/PrivateRoute";
 import './index.css';
@@ -31,6 +32,7 @@ function App() {
           {/* Pages publiques */}
           <Route path="/" element={<Home />} />
           <Route path="/index" element={<Index />} />
+            <Route path="/search" element={<SearchResult />} />
 
           {/*/!* Pages accessibles à tout utilisateur connecté *!/*/}
           <Route element={<PrivateRoute />}>

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const baseURL = process.env.REACT_APP_API_URL ?? "";
-
+console.log("🌍 API Base URL =", baseURL);
 const api = axios.create({ baseURL });
 
 // Intercepteur pour ajouter le token automatiquement

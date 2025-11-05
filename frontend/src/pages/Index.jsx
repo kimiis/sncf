@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { FaSearch, FaHeart, FaLeaf, FaTrain, FaChair, FaWifi, FaCity } from "react-icons/fa";
-import train from "../assets/train-removebg-preview.png";
 import coteAzur from "../assets/cote-azur.png";
 import annecy from "../assets/annecy.png"
+import { useNavigate } from "react-router-dom";
 import "../styles/index.css";
 
 function Index() {
     const [favoris, setFavoris] = useState(false);
     const [slideIndex, setSlideIndex] = useState(0);
+
+    const [fromCity, setFromCity] = useState("");
+    const [toCity, setToCity] = useState("");
+    const navigate = useNavigate();
 
     const slides = [
         {
@@ -28,15 +32,33 @@ function Index() {
         return () => clearInterval(interval);
     }, []);
 
+    const handleSearch = () => {
+        if (!fromCity || !toCity) return;
+        // redirection vers la page résultats avec les paramètres
+        navigate(`/search?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`);
+    };
+
     return (
         <div className="index-page">
             {/* Barre de recherche */}
             <section className="search-section">
                 <div className="search-bar">
-                    <input type="text" className="search-placeholder" placeholder="Gare de départ"/>
-                    <input type="text" className="search-placeholder" placeholder="Gare d'arrivée"/>
+                    <input
+                        type="text"
+                        className="search-placeholder"
+                        placeholder="Départ"
+                        value={fromCity}
+                        onChange={(e) => setFromCity(e.target.value)}
+                    />
+                    <input
+                        type="text"
+                        className="search-placeholder"
+                        placeholder="Arrivée"
+                        value={toCity}
+                        onChange={(e) => setToCity(e.target.value)}
+                    />
                     <input type="date"/>
-                    <button className="search-btn">
+                    <button className="search-btn" onClick={handleSearch}>
                         <FaSearch/>
                     </button>
                 </div>

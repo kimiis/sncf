@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 import Home from "./pages/Home.jsx";
 import Index from "./pages/Index.jsx";
+import NavBar from "./components/NavBar.jsx";
+import Profil from "./pages/Profil.jsx";
 
 import PrivateRoute from "./components/PrivateRoute";
 import './index.css';
@@ -24,17 +26,16 @@ function App() {
 
   return (
       <>
-        {!isAuthPage}
+        {!isAuthPage && <NavBar />}
         <Routes>
           {/* Pages publiques */}
           <Route path="/" element={<Home />} />
           <Route path="/index" element={<Index />} />
 
           {/*/!* Pages accessibles à tout utilisateur connecté *!/*/}
-          {/*<Route element={<PrivateRoute />}>*/}
-          {/*  <Route path="/index" element={<Index />} />*/}
-          {/*  <Route path="/profil" element={<ProfilPage />} />*/}
-          {/*</Route>*/}
+          <Route element={<PrivateRoute />}>
+            <Route path="/profil" element={<Profil />} />
+          </Route>
 
           {/*/!* Pages accessibles à employee et admin *!/*/}
           {/*<Route element={<PrivateRoute roles={["employee", "admin"]} />}>*/}

@@ -10,10 +10,10 @@ router.get("/", userController.getAllUsersController);
 // router.get("/employees/search", userController.searchEmployee);
 
 // Info du user connecté
-router.get("/me", verifyToken, userController.getUserWithRoleController);
+// router.get("/me", verifyToken, userController.getUserWithRoleController);
 
 // Création
-router.post("/", verifyToken, upload.single("photo"), userController.createUser);
+router.post("/", upload.single("photo"), userController.createUser);
 
 // MàJ / delete
 router.put("/user/:id", userController.updateUserController);

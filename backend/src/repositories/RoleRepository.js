@@ -1,19 +1,36 @@
-const Role = require("../models/RoleModel");
+const RoleModel = require("../models/RoleModel");
 
 class RoleRepository {
-    async getRoleById(role_id) {
-        return await Role.findByPk(role_id);
-    }
-
-    async getAllRoles() {
-        return await Role.findAll();
-    }
-
+    // Récupérer un rôle par son nom
     async getRoleIdByName(name) {
-        const role = await Role.findOne({ where: { role_name: name } });
-        return role ? role.role_id : null;
+        try {
+            const role = await RoleModel.findOne({ where: { name } });
+            return role ? role.role_id : null;
+        } catch (error) {
+            console.error("Erreur dans getRoleIdByName :", error);
+            throw error;
+        }
     }
 
+    // Récupérer un rôle par son ID
+    async getRoleById(role_id) {
+        try {
+            return await RoleModel.findByPk(role_id);
+        } catch (error) {
+            console.error("Erreur dans getRoleById :", error);
+            throw error;
+        }
+    }
+
+    // Récupérer tous les rôles
+    async getAllRoles() {
+        try {
+            return await RoleModel.findAll();
+        } catch (error) {
+            console.error("Erreur dans getAllRoles :", error);
+            throw error;
+        }
+    }
 }
 
 module.exports = new RoleRepository();

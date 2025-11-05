@@ -1,0 +1,197 @@
+.index-page {
+    background: #e7f1e8;
+    color: #2b3b3a;
+    font-family: "Poppins", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+}
+/* Barre de recherche */
+.search-section {
+    margin-top: 1.5em;
+    text-align: center;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.search-bar {
+    border-radius: 50px;
+    padding: 0.6em 1em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6em;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    width: 100%;
+    background-color: #606F74;
+
+}
+
+.search-bar input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    text-align: center;
+    flex: 1;
+    font-size: 0.9rem;
+    color: #F6F7F1;
+    font-family: "Montserrat", sans-serif;
+}
+
+.search-btn {
+    background: #f47b7b;
+    border: none;
+    color: #e7f1e8;
+    border-radius: 50%;
+    padding: 0.6em;
+    cursor: pointer;
+}
+
+.search-placeholder::placeholder {
+    color: #e7f1e8 !important;
+    opacity: 1;
+}
+
+.favoris-text {
+    margin-top: 0.5em;
+    font-size: 0.85rem;
+    color: #444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+    width: fit-content;
+    margin-inline: auto;
+    text-align: left;
+    background-color: #F7F4E5;
+    padding: 0.6em;
+    border-radius: 50px;
+}
+
+.favoris {
+    margin-right: 5px;
+    color: #bbb;
+}
+
+.favoris.active {
+    color: #f47b7b;
+}
+
+/* === CAROUSEL === */
+.carousel {
+    margin-top: 1.5em;
+    width: 85%;
+    text-align: center;
+}
+
+.carousel-slide {
+    position: relative;
+    border-radius: 15px;
+    background: #F7F4E5;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    padding: 1em;
+    display: flex;
+    align-items: center;
+}
+
+.carousel-img {
+    width: 40%;
+    border-radius: 10px;
+    object-fit: contain;
+}
+
+.carousel-text {
+    margin-top: 0.8em;
+    font-size: 0.95rem;
+    color: #2b3b3a;
+}
+
+.carousel-dots {
+    margin-top: 0.5em;
+}
+
+.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0 4px;
+    background: #bbb;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.dot.active {
+    background: #f47b7b;
+}
+
+/* === Pourquoi choisir le train === */
+.reasons-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.reasons-section-title{
+    font-family: "Oswald", sans-serif;
+    color: #506261;
+    font-size: 20px;
+}
+
+.reasons-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8em;
+    margin-top: 1em;
+}
+
+.reason {
+    width: 100px;
+    background: #f47b7b;
+    color: white;
+    border-radius: 10px;
+    padding: 0.8em;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.index-footer {
+    margin: 2em 0;
+    text-align: center;
+    color: #2b3b3a;
+    font-size: 0.9rem;
+}
+/*Card train*/
+
+.img-train{
+    width: 300px;
+}
+
+.card-train-main{
+    background-image: url("../assets/train-removebg-preview.png");
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    background-position-x: center;
+    background-position-y: bottom;
+    background-color: #F7F4E5;
+    border-radius: 10px;
+    width: 90%;
+    display: flex;
+    justify-content: flex-end;
+}
+.card-train-title{
+    width: 200px;
+    height: 150px;
+    padding-inline: 10px;
+}
+

@@ -1,6 +1,4 @@
-import logo from "../assets/Logo-train-go-eco.png";
 import { useNavigate } from "react-router-dom";
-import {useEffect} from "react";
 
 function Profil() {
     const navigate = useNavigate();

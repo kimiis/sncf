@@ -1,27 +1,24 @@
 import { useState, useEffect } from "react";
 import { FaSearch, FaHeart, FaLeaf, FaTrain, FaChair, FaWifi, FaCity } from "react-icons/fa";
 import coteAzur from "../assets/cote-azur.png";
-import annecy from "../assets/annecy.png"
+import annecy from "../assets/annecy.png";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
 import "../styles/index.css";
 
 function Index() {
     const [favoris, setFavoris] = useState(false);
     const [slideIndex, setSlideIndex] = useState(0);
-
     const [fromCity, setFromCity] = useState("");
     const [toCity, setToCity] = useState("");
+    const [gares, setGares] = useState([]);
+    const [suggestionsFrom, setSuggestionsFrom] = useState([]);
+    const [suggestionsTo, setSuggestionsTo] = useState([]);
     const navigate = useNavigate();
 
     const slides = [
-        {
-            image: annecy,
-            text: "Cap sur Annecy entre lac et montagnes",
-        },
-        {
-            image: coteAzur,
-            text: "La Côte d’Azur sans voiture",
-        },
+        { image: annecy, text: "Cap sur Annecy entre lac et montagnes" },
+        { image: coteAzur, text: "La Côte d’Azur sans voiture" },
     ];
 
     // Carrousel (change toutes les 4 secondes)
@@ -30,56 +27,120 @@ function Index() {
             setSlideIndex((prev) => (prev + 1) % slides.length);
         }, 4000);
         return () => clearInterval(interval);
-    }, []);
+    }, [slides.length]);
 
+    // 🔍 Recherche
     const handleSearch = () => {
         if (!fromCity || !toCity) return;
-        // redirection vers la page résultats avec les paramètres
         navigate(`/search?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`);
+    };
+
+    // Suggestions dynamiques (max 5 résultats)
+    const handleInputChange = async (value, type) => {
+        if (!value) {
+            if (type === "from") {
+                setFromCity("");
+                setSuggestionsFrom([]);
+            } else {
+                setToCity("");
+                setSuggestionsTo([]);
+            }
+            return;
+        }
+
+        try {
+            const res = await api.get(`/sncf/autocomplete?q=${value}`);
+            const filtered = (res.data?.gares ?? []).slice(0, 5); // 👈 Sécurisé
+
+            if (type === "from") {
+                setFromCity(value);
+                setSuggestionsFrom(filtered);
+            } else {
+                setToCity(value);
+                setSuggestionsTo(filtered);
+            }
+        } catch (err) {
+            console.error("Erreur autocomplétion :", err);
+        }
+    };
+
+    const handleSelect = (value, type) => {
+        if (type === "from") {
+            setFromCity(value);
+            setSuggestionsFrom([]);
+        } else {
+            setToCity(value);
+            setSuggestionsTo([]);
+        }
     };
 
     return (
         <div className="index-page">
-            {/* Barre de recherche */}
+            {/* 🧭 Barre de recherche */}
             <section className="search-section">
                 <div className="search-bar">
-                    <input
-                        type="text"
-                        className="search-placeholder"
-                        placeholder="Départ"
-                        value={fromCity}
-                        onChange={(e) => setFromCity(e.target.value)}
-                    />
-                    <input
-                        type="text"
-                        className="search-placeholder"
-                        placeholder="Arrivée"
-                        value={toCity}
-                        onChange={(e) => setToCity(e.target.value)}
-                    />
-                    <input type="date"/>
+                    {/* Départ */}
+                    <div className="input-wrapper">
+                        <input
+                            type="text"
+                            className="search-placeholder"
+                            placeholder="Départ"
+                            value={fromCity}
+                            onChange={(e) => handleInputChange(e.target.value, "from")}
+                        />
+                        {suggestionsFrom.length > 0 && (
+                            <ul className="suggestions">
+                                {suggestionsFrom.map((gare, i) => (
+                                    <li key={i} onClick={() => handleSelect(gare, "from")}>
+                                        {gare}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* Arrivée */}
+                    <div className="input-wrapper">
+                        <input
+                            type="text"
+                            className="search-placeholder"
+                            placeholder="Arrivée"
+                            value={toCity}
+                            onChange={(e) => handleInputChange(e.target.value, "to")}
+                        />
+                        {suggestionsTo.length > 0 && (
+                            <ul className="suggestions">
+                                {suggestionsTo.map((gare, i) => (
+                                    <li key={i} onClick={() => handleSelect(gare, "to")}>
+                                        {gare}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <input type="date" />
                     <button className="search-btn" onClick={handleSearch}>
-                        <FaSearch/>
+                        <FaSearch />
                     </button>
                 </div>
             </section>
-            <div>
-                <p className="favoris-text" onClick={() => setFavoris(!favoris)}>
-                    <FaHeart className={favoris ? "favoris active" : "favoris"}/> Mettre ce trajet en favoris
-                </p>
-            </div>
 
-            {/* Card train */}
+            {/* ❤️ Favoris */}
+            <p className="favoris-text" onClick={() => setFavoris(!favoris)}>
+                <FaHeart className={favoris ? "favoris active" : "favoris"} /> Mettre ce trajet en favoris
+            </p>
+
+            {/* 🚆 Card train */}
             <section className="card-train-main">
                 <div className="card-train">
                     <p className="card-train-title">
-                        Un trajet Paris - Lyon en train émet 20 kg de CO₂ de moins
-                        qu’en voiture.
+                        Un trajet Paris - Lyon en train émet 20 kg de CO₂ de moins qu’en voiture.
                     </p>
                 </div>
             </section>
 
-            {/* Carrousel */}
+            {/* 🖼️ Carrousel */}
             <section className="carousel">
                 <div className="carousel-slide">
                     <img
@@ -101,16 +162,15 @@ function Index() {
                 </div>
             </section>
 
-            {/* Pourquoi choisir le train */}
+            {/* 🌍 Pourquoi choisir le train */}
             <section className="reasons-section">
                 <h2 className="reasons-section-title">Pourquoi choisir le train ?</h2>
-
                 <div className="reasons-grid">
-                    <div className="reason"><FaLeaf/> 40x moins de CO₂</div>
-                    <div className="reason"><FaTrain/> Pas de bouchons</div>
-                    <div className="reason"><FaChair/> Confort & espace</div>
-                    <div className="reason"><FaWifi/> Wifi & prises</div>
-                    <div className="reason"><FaCity/> Gare en centre-ville</div>
+                    <div className="reason"><FaLeaf /> 40x moins de CO₂</div>
+                    <div className="reason"><FaTrain /> Pas de bouchons</div>
+                    <div className="reason"><FaChair /> Confort & espace</div>
+                    <div className="reason"><FaWifi /> Wifi & prises</div>
+                    <div className="reason"><FaCity /> Gare en centre-ville</div>
                 </div>
             </section>
 

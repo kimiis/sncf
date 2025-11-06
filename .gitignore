@@ -12,3 +12,11 @@ frontend/.env
  frontend/package-lock.json
  yarn.lock
  pnpm-lock.yaml
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Environnements
+.env

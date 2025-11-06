@@ -5,15 +5,13 @@ import base64
 import requests
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
-import os
 
 app = FastAPI()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-tarif_file = os.path.join(BASE_DIR, "tarifs-tgv.xlsx")
-co2_file = os.path.join(BASE_DIR, "emission-co2-perimetre-usage.xlsx")
-gares_file = os.path.join(BASE_DIR, "gares.xlsx")
-
+# Chemins vers fichiers Excel
+tarif_file = "tarifs-tgv.xlsx"
+co2_file = "emission-co2-perimetre-usage.xlsx"
+gares_file = "gares.xlsx"
 
 # Chargement données Excel
 df_tarif = pd.read_excel(tarif_file)
@@ -37,9 +35,11 @@ def get_gares():
 
 @app.get("/autocomplete")
 def autocomplete(q: str = ''):
+    if not q or len(q.strip()) < 2:
+        return []
     q_lower = q.lower()
     resultats = [gare for gare in df_gares['LIBELLE'].unique() if q_lower in gare.lower()]
-    return resultats[:10]
+    return {"gares": resultats[:10]}
 
 @app.get("/", response_class=HTMLResponse)
 def root():

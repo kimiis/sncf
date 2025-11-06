@@ -23,6 +23,31 @@ router.get("/trajet", async (req, res) => {
     }
 });
 
+router.get("/gares", async (req, res) => {
+    console.log("[GET] /api/sncf/gares hit");
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/gares`);
+        res.json(response.data);
+    } catch (err) {
+        console.error("❌ Erreur FastAPI /gares :", err.message);
+        res.status(err.response?.status || 500).json({ error: "Erreur FastAPI /gares" });
+    }
+});
+
+// ✅ --- Route pour l’autocomplétion ---
+router.get("/autocomplete", async (req, res) => {
+    const { q } = req.query;
+    console.log(`[GET] /api/sncf/autocomplete?q=${q}`);
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/autocomplete`, { params: { q } });
+        res.json(response.data);
+    } catch (err) {
+        console.error("❌ Erreur FastAPI /autocomplete :", err.message);
+        res.status(err.response?.status || 500).json({ error: "Erreur FastAPI /autocomplete" });
+    }
+});
+
+
 console.log("📋 Stack finale sncfRoutes :", router.stack.map(l => l.route?.path || l.name));
 
 module.exports = router;

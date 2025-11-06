@@ -5,13 +5,15 @@ import base64
 import requests
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
+import os
 
 app = FastAPI()
 
-# Chemins vers fichiers Excel
-tarif_file = "tarifs-tgv.xlsx"
-co2_file = "emission-co2-perimetre-usage.xlsx"
-gares_file = "gares.xlsx"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+tarif_file = os.path.join(BASE_DIR, "tarifs-tgv.xlsx")
+co2_file = os.path.join(BASE_DIR, "emission-co2-perimetre-usage.xlsx")
+gares_file = os.path.join(BASE_DIR, "gares.xlsx")
+
 
 # Chargement données Excel
 df_tarif = pd.read_excel(tarif_file)

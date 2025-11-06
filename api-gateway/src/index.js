@@ -16,7 +16,6 @@ app.use((req, res, next) => {
 // --- Mount routes ---
 app.use("/api", routes);
 
-
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
     console.log(`\n API Gateway running on port ${PORT}`);

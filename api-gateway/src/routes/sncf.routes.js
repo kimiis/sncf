@@ -23,6 +23,6 @@ router.get("/trajet", async (req, res) => {
     }
 });
 
-// console.log("📋 Stack finale sncfRoutes :", router.stack.map(l => l.route?.path || l.name));
+console.log("📋 Stack finale sncfRoutes :", router.stack.map(l => l.route?.path || l.name));
 
 module.exports = router;

@@ -184,13 +184,13 @@ export default function SearchResult() {
             </div>
 
             {/* Carte */}
-            <MapContainer
-                key={`${startPos[0]}-${endPos[0]}`}
-                center={center}
-                zoom={6}
-                scrollWheelZoom={true}
-                style={{ height: "500px", width: "100%" }}
-            >
+            <div className="map-container">
+                <MapContainer
+                    key={`${startPos[0]}-${endPos[0]}`}
+                    center={center}
+                    zoom={6}
+                    scrollWheelZoom={true}
+                >
                 <MapAutoResize />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -256,7 +256,8 @@ export default function SearchResult() {
                         </Marker>
                     )
                 ))}
-            </MapContainer>
+                </MapContainer>
+            </div>
 
             {/* Listes des POI */}
             <div className="poi-lists">

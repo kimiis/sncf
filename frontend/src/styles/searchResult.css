@@ -1,5 +1,22 @@
+/* Conteneur de la carte */
+.map-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.map-container .leaflet-container {
+    height: 500px !important;
+    width: 90% !important;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+}
+
 /* Informations trajet */
 .trajet-info {
+    width: 80%;
     background: white;
     padding: 15px 20px;
     border-radius: 10px;
@@ -19,6 +36,7 @@
 
 /* Conteneur des filtres */
 .filters-container {
+    width: 80%;
     background: white;
     padding: 15px 20px;
     border-radius: 10px;

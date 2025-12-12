@@ -10,7 +10,7 @@ import os
 
 app = FastAPI()
 
-# CORS - AJOUTÉ ICI
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,15 +19,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Chemin absolu du dossier contenant main.py
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Chemin vers la racine du projet (2 niveaux au-dessus de main.py)
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Chemins vers fichiers Excel (dans le même dossier que main.py)
-tarif_file = os.path.join(BASE_DIR, "tarifs-tgv.xlsx")
-co2_file = os.path.join(BASE_DIR, "emission-co2-perimetre-usage.xlsx")
-gares_file = os.path.join(BASE_DIR, "gares.xlsx")
+# Chemins vers fichiers Excel (source unique : Data/DataLake/processed/)
+DATA_DIR = os.path.join(ROOT_DIR, "Data", "DataLake", "processed")
+tarif_file = os.path.join(DATA_DIR, "tarifs-tgv.xlsx")
+co2_file = os.path.join(DATA_DIR, "emission-co2-perimetre-usage.xlsx")
+gares_file = os.path.join(DATA_DIR, "gares.xlsx")
 
-# Chargement données Excel
+# Chargement des données Excel
 df_tarif = pd.read_excel(tarif_file)
 df_tarif.dropna(
     subset=[
@@ -214,7 +215,6 @@ def get_hotels_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
         tags = el.get("tags", {})
         name = tags.get("name")
 
-        # Récupération des coordonnées
         if el["type"] == "node":
             h_lat = el.get("lat")
             h_lon = el.get("lon")
@@ -243,7 +243,7 @@ def get_bike_stations_near(lat_gare: float, lon_gare: float, radius_m: int = 500
     """
     Retourne une liste de stations vélo OSM proches :
     [{name, lat, lon, distance_km_from_station, type}, ...]
-    type ∈ {"bicycle_rental", "bicycle_parking"}
+    type : bicycle_rental ou bicycle_parking
     """
     query = f"""
     [out:json];
@@ -270,7 +270,6 @@ def get_bike_stations_near(lat_gare: float, lon_gare: float, radius_m: int = 500
         name = tags.get("name")
         amenity_type = tags.get("amenity")
 
-        # Coordonnées
         if el["type"] == "node":
             s_lat = el.get("lat")
             s_lon = el.get("lon")
@@ -303,20 +302,16 @@ def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
     """
     Retourne une liste d'activités OSM proches :
     [{name, lat, lon, distance_km_from_station, category}, ...]
-    category ~ type d'activité (tourism/amenity/leisure).
     """
     query = f"""
     [out:json];
     (
-      // Culture / tourisme
       node["tourism"~"museum|attraction|gallery|viewpoint"](around:{radius_m},{lat_gare},{lon_gare});
       way["tourism"~"museum|attraction|gallery|viewpoint"](around:{radius_m},{lat_gare},{lon_gare});
       relation["tourism"~"museum|attraction|gallery|viewpoint"](around:{radius_m},{lat_gare},{lon_gare});
-      // Parcs / loisirs
       node["leisure"~"park|pitch|sports_centre|stadium|swimming_pool"](around:{radius_m},{lat_gare},{lon_gare});
       way["leisure"~"park|pitch|sports_centre|stadium|swimming_pool"](around:{radius_m},{lat_gare},{lon_gare});
       relation["leisure"~"park|pitch|sports_centre|stadium|swimming_pool"](around:{radius_m},{lat_gare},{lon_gare});
-      // Sorties (restos, bars, cafés, ciné, théâtre)
       node["amenity"~"restaurant|cafe|bar|pub|fast_food|cinema|theatre"](around:{radius_m},{lat_gare},{lon_gare});
       way["amenity"~"restaurant|cafe|bar|pub|fast_food|cinema|theatre"](around:{radius_m},{lat_gare},{lon_gare});
       relation["amenity"~"restaurant|cafe|bar|pub|fast_food|cinema|theatre"](around:{radius_m},{lat_gare},{lon_gare});
@@ -338,7 +333,6 @@ def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
         leisure = tags.get("leisure")
         amenity = tags.get("amenity")
 
-        # Coordonnées
         if el["type"] == "node":
             a_lat = el.get("lat")
             a_lon = el.get("lon")
@@ -353,7 +347,6 @@ def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
         dist_km = distance_haversine(lat_gare, lon_gare, a_lat, a_lon)
         dist_km = round(dist_km, 2)
 
-        # Catégorie simple pour lisibilité
         category = tourism or leisure or amenity
 
         activities.append(
@@ -406,7 +399,7 @@ def trajet(
             lignes = df_tarif[
                 (df_tarif["Gare origine - code UIC"] == from_code)
                 & (df_tarif["Gare destination - code UIC"] == to_code)
-                ]
+            ]
             if not lignes.empty:
                 prix_min = lignes["Prix minimum"].mean()
                 prix_max = lignes["Prix maximum"].mean()
@@ -425,15 +418,11 @@ def trajet(
             co2_ligne = df_co2[
                 (df_co2["Origine_uic"] == from_code)
                 & (df_co2["Destination_uic"] == to_code)
-                ]
+            ]
             if not co2_ligne.empty:
                 distance = co2_ligne["Distance entre les gares"].values[0]
-                train_co2 = co2_ligne[
-                    "Train - Empreinte carbone (kgCO2e)"
-                ].values[0]
-                voiture_co2 = co2_ligne[
-                    "Voiture thermique (2,2 pers.) - Empreinte carbone (kgCO2e)"
-                ].values[0]
+                train_co2 = co2_ligne["Train - Empreinte carbone (kgCO2e)"].values[0]
+                voiture_co2 = co2_ligne["Voiture thermique (2,2 pers.) - Empreinte carbone (kgCO2e)"].values[0]
                 if pd.isnull(train_co2) and distance is not None:
                     train_co2 = estime_co2_train(distance)
                 if pd.isnull(voiture_co2) and distance is not None:
@@ -456,7 +445,7 @@ def trajet(
         except Exception:
             lat_dep = lon_dep = lat_arr = lon_arr = None
 
-        # Hôtels / vélos / activités proches de la gare d'arrivée (si coordonnées dispo)
+        # Hôtels / vélos / activités proches de la gare d'arrivée
         if lat_arr is not None and lon_arr is not None:
             hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1000)
             stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=500)
@@ -469,7 +458,7 @@ def trajet(
         minutes = (total_duration % 3600) // 60
         duree = f"{hours}h{minutes}mn"
 
-    # Arrondi de la distance globale du trajet
+    # Arrondi de la distance
     if distance is not None:
         distance = round(float(distance), 2)
 

@@ -50,7 +50,8 @@ function Index() {
 
         try {
             const res = await api.get(`/sncf/autocomplete?q=${value}`);
-            const filtered = (res.data?.gares ?? []).slice(0, 5); // 👈 Sécurisé
+            // L'API retourne directement un tableau de gares
+            const filtered = Array.isArray(res.data) ? res.data.slice(0, 5) : [];
 
             if (type === "from") {
                 setFromCity(value);

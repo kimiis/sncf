@@ -2,9 +2,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    display: block !important;
     position: relative;
     width: 100%;
-    overflow: hidden; /* évite les décalages de tuiles */
-    background: #d9f9e2; /* ton vert clair */
+    min-height: 100vh;
+    overflow-x: hidden; /* evite le scroll horizontal */
+    overflow-y: auto; /* permet le scroll vertical */
+    background: #d9f9e2;
+    padding-bottom: 40px;
 }

@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # API FastAPI Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: sncf-api
+    ports:
+      - "10.18.72.31:8000:8000"  # Expose sur ton IP
+    volumes:
+      - ./Data:/app/Data
+      - ./main.py:/app/main.py
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - sncf-network
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./sncf-app
+      dockerfile: Dockerfile.frontend
+    container_name: sncf-frontend
+    ports:
+      - "10.18.72.31:3000:3000"  # Expose sur ton IP
+    environment:
+      - REACT_APP_API_URL=http://10.18.72.31:8000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./sncf-app/src:/app/src
+      - ./sncf-app/public:/app/public
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - sncf-network
+    stdin_open: true
+    tty: true
+
+networks:
+  sncf-network:
+    driver: bridge

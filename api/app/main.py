@@ -298,11 +298,12 @@ def get_bike_stations_near(lat_gare: float, lon_gare: float, radius_m: int = 500
     return stations
 
 
-def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
+def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 2000):
     """
     Retourne une liste d'activités OSM proches :
     [{name, lat, lon, distance_km_from_station, category}, ...]
     """
+    print(f"[DEBUG] Recherche activites autour de ({lat_gare}, {lon_gare}) rayon={radius_m}m")
     query = f"""
     [out:json];
     (
@@ -319,10 +320,12 @@ def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
     out center;
     """
     try:
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=25)
+        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=30)
         resp.raise_for_status()
         data = resp.json()
-    except Exception:
+        print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
+    except Exception as e:
+        print(f"[ERROR] Erreur Overpass activites: {e}")
         return []
 
     activities = []
@@ -442,14 +445,20 @@ def trajet(
         try:
             lat_dep, lon_dep = get_coords(from_code)
             lat_arr, lon_arr = get_coords(to_code)
-        except Exception:
+            print(f"[DEBUG] Coordonnees arrivee: lat={lat_arr}, lon={lon_arr}")
+        except Exception as e:
+            print(f"[ERROR] Erreur get_coords: {e}")
             lat_dep = lon_dep = lat_arr = lon_arr = None
 
         # Hôtels / vélos / activités proches de la gare d'arrivée
         if lat_arr is not None and lon_arr is not None:
-            hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1000)
-            stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=500)
-            activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=1000)
+            print(f"[DEBUG] Recherche POI autour de la gare d'arrivee...")
+            hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=2000)
+            stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=1000)
+            activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=2000)
+            print(f"[DEBUG] Resultats: {len(hotels_proches)} hotels, {len(stations_velo_proches)} velos, {len(activites_proches)} activites")
+        else:
+            print(f"[WARNING] Coordonnees arrivee non trouvees, pas de recherche POI")
 
     # Durée formatée
     if journey:

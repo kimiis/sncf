@@ -7,8 +7,13 @@ import requests
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
 import os
+import time
 
 app = FastAPI()
+
+# Cache simple pour éviter les requêtes Overpass répétées (rate limiting 429)
+overpass_cache = {}
+CACHE_DURATION = 300  # 5 minutes
 
 # CORS
 app.add_middleware(
@@ -29,6 +34,7 @@ co2_file = os.path.join(DATA_DIR, "emission-co2-perimetre-usage.xlsx")
 gares_file = os.path.join(DATA_DIR, "gares.xlsx")
 
 # Chargement des données Excel
+print(f"[STARTUP] Chargement de {tarif_file}...")
 df_tarif = pd.read_excel(tarif_file)
 df_tarif.dropna(
     subset=[
@@ -39,11 +45,16 @@ df_tarif.dropna(
     ],
     inplace=True,
 )
+print(f"[STARTUP] tarifs: {df_tarif.shape}")
 
+print(f"[STARTUP] Chargement de {co2_file}...")
 df_co2 = pd.read_excel(co2_file)
 df_co2.dropna(subset=["Origine_uic", "Destination_uic"], inplace=True)
+print(f"[STARTUP] co2: {df_co2.shape}")
 
+print(f"[STARTUP] Chargement de {gares_file}...")
 df_gares = pd.read_excel(gares_file)
+print(f"[STARTUP] gares: {df_gares.shape}")
 
 # Auth API SNCF
 api_key = "2d5f9bc9-9eb2-471b-bba8-24d542cf79ae"
@@ -54,6 +65,34 @@ headers = {"Authorization": f"Basic {token}"}
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
+def overpass_query_cached(query: str, cache_key: str, timeout: int = 30):
+    """Exécute une requête Overpass avec cache pour éviter le rate limiting 429."""
+    now = time.time()
+
+    # Vérifier le cache
+    if cache_key in overpass_cache:
+        cached_data, cached_time = overpass_cache[cache_key]
+        if now - cached_time < CACHE_DURATION:
+            print(f"[CACHE] Utilisation du cache pour {cache_key}")
+            return cached_data
+
+    # Requête Overpass
+    try:
+        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        # Stocker en cache
+        overpass_cache[cache_key] = (data, now)
+        return data
+    except Exception as e:
+        print(f"[ERROR] Erreur Overpass: {e}")
+        # Retourner le cache expiré si disponible
+        if cache_key in overpass_cache:
+            print(f"[CACHE] Utilisation du cache expiré pour {cache_key}")
+            return overpass_cache[cache_key][0]
+        return {"elements": []}
+
+
 @app.get("/gares")
 def get_gares():
     gares = sorted(df_gares["LIBELLE"].dropna().unique().tolist())
@@ -62,12 +101,16 @@ def get_gares():
 
 @app.get("/autocomplete")
 def autocomplete(q: str = ""):
+    print(f"[DEBUG] autocomplete appelé avec q={q}")
+    print(f"[DEBUG] df_gares shape: {df_gares.shape}")
     q_lower = q.lower()
+    print(f"[DEBUG] Recherche en cours...")
     resultats = [
         gare
         for gare in df_gares["LIBELLE"].dropna().unique()
         if q_lower in gare.lower()
     ]
+    print(f"[DEBUG] {len(resultats)} résultats trouvés")
     return resultats[:10]
 
 
@@ -203,12 +246,8 @@ def get_hotels_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
     );
     out center;
     """
-    try:
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=25)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception:
-        return []
+    cache_key = f"hotels_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}"
+    data = overpass_query_cached(query, cache_key, timeout=25)
 
     hotels = []
     for el in data.get("elements", []):
@@ -241,9 +280,8 @@ def get_hotels_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
 
 def get_bike_stations_near(lat_gare: float, lon_gare: float, radius_m: int = 500):
     """
-    Retourne une liste de stations vélo OSM proches :
+    Retourne une liste de stations vélo en libre-service (Bicloo, Vélib, etc.) OSM proches :
     [{name, lat, lon, distance_km_from_station, type}, ...]
-    type : bicycle_rental ou bicycle_parking
     """
     query = f"""
     [out:json];
@@ -251,18 +289,11 @@ def get_bike_stations_near(lat_gare: float, lon_gare: float, radius_m: int = 500
       node["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
       way["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
       relation["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
-      node["amenity"="bicycle_parking"](around:{radius_m},{lat_gare},{lon_gare});
-      way["amenity"="bicycle_parking"](around:{radius_m},{lat_gare},{lon_gare});
-      relation["amenity"="bicycle_parking"](around:{radius_m},{lat_gare},{lon_gare});
     );
     out center;
     """
-    try:
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=25)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception:
-        return []
+    cache_key = f"bikes_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}"
+    data = overpass_query_cached(query, cache_key, timeout=25)
 
     stations = []
     for el in data.get("elements", []):
@@ -319,14 +350,9 @@ def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 2000):
     );
     out center;
     """
-    try:
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
-    except Exception as e:
-        print(f"[ERROR] Erreur Overpass activites: {e}")
-        return []
+    cache_key = f"activities_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}"
+    data = overpass_query_cached(query, cache_key, timeout=30)
+    print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
 
     activities = []
     for el in data.get("elements", []):
@@ -364,7 +390,8 @@ def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 2000):
         )
 
     activities.sort(key=lambda x: x["distance_km_from_station"])
-    return activities
+    # Limite à 50 résultats max pour éviter les timeouts
+    return activities[:50]
 
 
 @app.get("/trajet")

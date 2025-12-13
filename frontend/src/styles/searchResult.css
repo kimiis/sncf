@@ -1,5 +1,22 @@
+/* Conteneur de la carte */
+.map-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.map-container .leaflet-container {
+    height: 500px !important;
+    width: 90% !important;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+}
+
 /* Informations trajet */
 .trajet-info {
+    width: 80%;
     background: white;
     padding: 15px 20px;
     border-radius: 10px;
@@ -19,6 +36,7 @@
 
 /* Conteneur des filtres */
 .filters-container {
+    width: 80%;
     background: white;
     padding: 15px 20px;
     border-radius: 10px;
@@ -94,6 +112,59 @@
 .filter-activity:has(input:checked) {
     background: #fff3e0;
     border-color: #fb8c00;
+}
+
+/* Sous-filtres activites */
+.sub-filters {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.sub-filters h4 {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.sub-filters-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.sub-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    transition: all 0.2s ease;
+}
+
+.sub-filter-item:hover {
+    background: #eee;
+}
+
+.sub-filter-item.active {
+    background: #fff3e0;
+    border-color: #fb8c00;
+    color: #e65100;
+}
+
+.sub-filter-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.sub-filter-icon {
+    font-size: 1rem;
 }
 
 /* Message de limite */

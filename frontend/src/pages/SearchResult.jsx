@@ -54,6 +54,15 @@ const activityIcon = new L.Icon({
     shadowSize: [41, 41],
 });
 
+// Categories d'activites
+const ACTIVITY_CATEGORIES = {
+    restaurant: { label: "Restaurants & Cafes", icon: "🍽️", types: ["restaurant", "cafe", "fast_food"] },
+    bar: { label: "Bars & Pubs", icon: "🍺", types: ["bar", "pub"] },
+    culture: { label: "Culture", icon: "🎭", types: ["museum", "gallery", "theatre", "cinema", "attraction"] },
+    park: { label: "Parcs & Nature", icon: "🌳", types: ["park", "viewpoint"] },
+    sport: { label: "Sports", icon: "⚽", types: ["pitch", "sports_centre", "stadium", "swimming_pool"] },
+};
+
 // Composant pour recalculer la taille de la carte
 function MapAutoResize() {
     const map = useMap();
@@ -74,10 +83,19 @@ export default function SearchResult() {
     const [trajet, setTrajet] = useState(null);
     const [error, setError] = useState("");
 
-    // Etats des filtres
+    // Etats des filtres principaux
     const [showHotels, setShowHotels] = useState(false);
     const [showBikes, setShowBikes] = useState(false);
     const [showActivities, setShowActivities] = useState(false);
+
+    // Etats des sous-filtres activites
+    const [activityFilters, setActivityFilters] = useState({
+        restaurant: true,
+        bar: true,
+        culture: true,
+        park: true,
+        sport: true,
+    });
 
     // Limite pour les utilisateurs non connectes
     const LIMIT_NON_CONNECTED = 10;
@@ -97,6 +115,25 @@ export default function SearchResult() {
         };
         fetchTrajet();
     }, [fromCity, toCity]);
+
+    // Toggle un sous-filtre d'activite
+    const toggleActivityFilter = (category) => {
+        setActivityFilters(prev => ({
+            ...prev,
+            [category]: !prev[category]
+        }));
+    };
+
+    // Verifier si une activite correspond aux filtres selectionnes
+    const activityMatchesFilter = (activity) => {
+        const category = activity.category;
+        for (const [key, config] of Object.entries(ACTIVITY_CATEGORIES)) {
+            if (config.types.includes(category) && activityFilters[key]) {
+                return true;
+            }
+        }
+        return false;
+    };
 
     if (error) return <p className="error">{error}</p>;
     if (!trajet) return <p>Chargement du trajet...</p>;
@@ -126,9 +163,18 @@ export default function SearchResult() {
         ? trajet.stations_velo_proches || []
         : (trajet.stations_velo_proches || []).slice(0, LIMIT_NON_CONNECTED);
 
-    const activities = isAuthenticated
+    const allActivities = isAuthenticated
         ? trajet.activites_proches || []
         : (trajet.activites_proches || []).slice(0, LIMIT_NON_CONNECTED);
+
+    // Filtrer les activites selon les sous-filtres
+    const filteredActivities = allActivities.filter(activityMatchesFilter);
+
+    // Compter les activites par categorie
+    const countByCategory = (categoryKey) => {
+        const config = ACTIVITY_CATEGORIES[categoryKey];
+        return allActivities.filter(a => config.types.includes(a.category)).length;
+    };
 
     return (
         <div className="search-result-page">
@@ -173,9 +219,30 @@ export default function SearchResult() {
                             onChange={(e) => setShowActivities(e.target.checked)}
                         />
                         <span className="filter-icon">🎭</span>
-                        Activites ({activities.length})
+                        Activites ({allActivities.length})
                     </label>
                 </div>
+
+                {/* Sous-filtres activites */}
+                {showActivities && (
+                    <div className="sub-filters">
+                        <h4>Filtrer par type d'activite :</h4>
+                        <div className="sub-filters-grid">
+                            {Object.entries(ACTIVITY_CATEGORIES).map(([key, config]) => (
+                                <label key={key} className={`sub-filter-item ${activityFilters[key] ? 'active' : ''}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={activityFilters[key]}
+                                        onChange={() => toggleActivityFilter(key)}
+                                    />
+                                    <span className="sub-filter-icon">{config.icon}</span>
+                                    {config.label} ({countByCategory(key)})
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {!isAuthenticated && (
                     <p className="limit-warning">
                         Connectez-vous pour voir tous les resultats (limite a {LIMIT_NON_CONNECTED} par categorie)
@@ -184,13 +251,13 @@ export default function SearchResult() {
             </div>
 
             {/* Carte */}
-            <MapContainer
-                key={`${startPos[0]}-${endPos[0]}`}
-                center={center}
-                zoom={6}
-                scrollWheelZoom={true}
-                style={{ height: "500px", width: "100%" }}
-            >
+            <div className="map-container">
+                <MapContainer
+                    key={`${startPos[0]}-${endPos[0]}`}
+                    center={center}
+                    zoom={6}
+                    scrollWheelZoom={true}
+                >
                 <MapAutoResize />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -240,8 +307,8 @@ export default function SearchResult() {
                     )
                 ))}
 
-                {/* Marqueurs Activites */}
-                {showActivities && activities.map((activity, idx) => (
+                {/* Marqueurs Activites filtrees */}
+                {showActivities && filteredActivities.map((activity, idx) => (
                     activity.lat && activity.lon && (
                         <Marker
                             key={`activity-${idx}`}
@@ -256,7 +323,8 @@ export default function SearchResult() {
                         </Marker>
                     )
                 ))}
-            </MapContainer>
+                </MapContainer>
+            </div>
 
             {/* Listes des POI */}
             <div className="poi-lists">
@@ -293,12 +361,12 @@ export default function SearchResult() {
                     </div>
                 )}
 
-                {/* Liste Activites */}
-                {showActivities && activities.length > 0 && (
+                {/* Liste Activites filtrees */}
+                {showActivities && filteredActivities.length > 0 && (
                     <div className="poi-section poi-activities">
-                        <h3>🎭 Activites a proximite de {trajet.to_city}</h3>
+                        <h3>🎭 Activites a proximite de {trajet.to_city} ({filteredActivities.length})</h3>
                         <div className="poi-grid">
-                            {activities.map((activity, idx) => (
+                            {filteredActivities.map((activity, idx) => (
                                 <div key={`activity-list-${idx}`} className="poi-card">
                                     <h4>{activity.name || "Activite"}</h4>
                                     <p>📍 {activity.distance_km_from_station} km de la gare</p>

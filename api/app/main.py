@@ -232,6 +232,30 @@ def get_full_journey(from_code: int, to_code: int):
     return journeys[0]
 
 
+def extract_route_coordinates(journey):
+    """
+    Extrait les coordonnées GPS du tracé du train depuis les données de l'API SNCF.
+    Retourne une liste de [latitude, longitude] pour tracer le parcours réel.
+    """
+    if not journey:
+        return []
+
+    coordinates = []
+    sections = journey.get("sections", [])
+
+    for section in sections:
+        # Récupérer les coordonnées depuis le geojson de la section
+        geojson = section.get("geojson", {})
+        if geojson and geojson.get("type") == "LineString":
+            coords = geojson.get("coordinates", [])
+            # GeoJSON utilise [lon, lat], on inverse pour Leaflet [lat, lon]
+            for coord in coords:
+                if len(coord) >= 2:
+                    coordinates.append([coord[1], coord[0]])
+
+    return coordinates
+
+
 def get_hotels_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
     """
     Retourne une liste d'hôtels OSM proches:
@@ -498,6 +522,10 @@ def trajet(
     if distance is not None:
         distance = round(float(distance), 2)
 
+    # Extraire les coordonnées GPS du tracé réel du train
+    route_coordinates = extract_route_coordinates(journey)
+    print(f"[DEBUG] {len(route_coordinates)} coordonnées extraites pour le tracé du train")
+
     return {
         "from_city": from_city,
         "to_city": to_city,
@@ -508,6 +536,7 @@ def trajet(
         "co2_voiture_kg": voiture_co2,
         "coordonnees_depart": {"latitude": lat_dep, "longitude": lon_dep},
         "coordonnees_arrivee": {"latitude": lat_arr, "longitude": lon_arr},
+        "route_coordinates": route_coordinates,
         "hotels_proches": hotels_proches,
         "stations_velo_proches": stations_velo_proches,
         "activites_proches": activites_proches,

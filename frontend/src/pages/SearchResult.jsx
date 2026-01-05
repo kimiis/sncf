@@ -154,6 +154,10 @@ export default function SearchResult() {
         (startPos[1] + endPos[1]) / 2,
     ];
 
+    // Coordonnées du tracé réel du train (si disponibles)
+    const routeCoords = trajet.route_coordinates || [];
+    const hasRealRoute = routeCoords.length > 0;
+
     // Donnees des POI avec limite selon connexion
     const hotels = isAuthenticated
         ? trajet.hotels_proches || []
@@ -259,6 +263,7 @@ export default function SearchResult() {
                     scrollWheelZoom={true}
                 >
                 <MapAutoResize />
+                {/* Fond de carte OpenStreetMap */}
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -272,7 +277,23 @@ export default function SearchResult() {
                     <Popup>Arrivee : {trajet.to_city}</Popup>
                 </Marker>
 
-                <Polyline positions={[startPos, endPos]} color="blue" weight={4} />
+                {/* Tracé du trajet : réel si disponible, sinon ligne droite */}
+                {hasRealRoute ? (
+                    <Polyline
+                        positions={routeCoords}
+                        color="#009485"
+                        weight={5}
+                        opacity={0.8}
+                    />
+                ) : (
+                    <Polyline
+                        positions={[startPos, endPos]}
+                        color="blue"
+                        weight={4}
+                        dashArray="10, 10"
+                        opacity={0.6}
+                    />
+                )}
 
                 {/* Marqueurs Hotels */}
                 {showHotels && hotels.map((hotel, idx) => (

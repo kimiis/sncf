@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FaSearch, FaHeart, FaLeaf, FaTrain, FaChair, FaWifi, FaCity } from "react-icons/fa";
+import { FaSearch, FaHeart, FaLeaf, FaTrain, FaChair, FaWifi, FaCity, FaClock, FaEuroSign, FaSmile } from "react-icons/fa";
 import coteAzur from "../assets/cote-azur.png";
 import annecy from "../assets/annecy.png";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +18,7 @@ function Index() {
 
     const slides = [
         { image: annecy, text: "Cap sur Annecy entre lac et montagnes" },
-        { image: coteAzur, text: "La Côte d’Azur sans voiture" },
+        { image: coteAzur, text: "La Côte d'Azur sans voiture" },
     ];
 
     // Carrousel (change toutes les 4 secondes)
@@ -29,7 +29,7 @@ function Index() {
         return () => clearInterval(interval);
     }, [slides.length]);
 
-    // 🔍 Recherche
+    // Recherche
     const handleSearch = () => {
         if (!fromCity || !toCity) return;
         navigate(`/search?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`);
@@ -50,7 +50,6 @@ function Index() {
 
         try {
             const res = await api.get(`/sncf/autocomplete?q=${value}`);
-            // L'API retourne directement un tableau de gares
             const filtered = Array.isArray(res.data) ? res.data.slice(0, 5) : [];
 
             if (type === "from") {
@@ -77,7 +76,13 @@ function Index() {
 
     return (
         <div className="index-page">
-            {/* 🧭 Barre de recherche */}
+            {/* Hero Section */}
+            <section className="hero-section">
+                <h1 className="hero-title">Voyagez autrement, voyagez mieux</h1>
+                <p className="hero-subtitle">Découvrez la France en train tout en préservant la planète</p>
+            </section>
+
+            {/* Barre de recherche */}
             <section className="search-section">
                 <div className="search-bar">
                     {/* Départ */}
@@ -127,22 +132,73 @@ function Index() {
                 </div>
             </section>
 
-            {/* ❤️ Favoris */}
+            {/* Favoris */}
             <p className="favoris-text" onClick={() => setFavoris(!favoris)}>
                 <FaHeart className={favoris ? "favoris active" : "favoris"} /> Mettre ce trajet en favoris
             </p>
 
-            {/* 🚆 Card train */}
-            <section className="card-train-main">
-                <div className="card-train">
-                    <p className="card-train-title">
-                        Un trajet Paris - Lyon en train émet 20 kg de CO₂ de moins qu’en voiture.
-                    </p>
+            {/* Section comparaison Train vs Voiture */}
+            <section className="comparison-section">
+                <h2 className="section-title">Train vs Voiture : Les chiffres parlent</h2>
+                <div className="comparison-cards">
+                    <div className="comparison-card eco">
+                        <div className="comparison-icon">
+                            <FaLeaf />
+                        </div>
+                        <h3>40x moins de CO₂</h3>
+                        <p className="comparison-stat">1,9 kg CO₂</p>
+                        <p className="comparison-label">vs 122 kg en voiture</p>
+                        <p className="comparison-detail">pour 100 km par personne</p>
+                    </div>
+
+                    <div className="comparison-card time">
+                        <div className="comparison-icon">
+                            <FaClock />
+                        </div>
+                        <h3>Temps utile</h3>
+                        <p className="comparison-stat">100%</p>
+                        <p className="comparison-label">productif ou reposant</p>
+                        <p className="comparison-detail">Travaillez, lisez ou dormez</p>
+                    </div>
+
+                    <div className="comparison-card money">
+                        <div className="comparison-icon">
+                            <FaEuroSign />
+                        </div>
+                        <h3>Economique</h3>
+                        <p className="comparison-stat">-50%</p>
+                        <p className="comparison-label">de frais en moyenne</p>
+                        <p className="comparison-detail">Péage + essence + parking</p>
+                    </div>
+
+                    <div className="comparison-card stress">
+                        <div className="comparison-icon">
+                            <FaSmile />
+                        </div>
+                        <h3>Zéro stress</h3>
+                        <p className="comparison-stat">0</p>
+                        <p className="comparison-label">embouteillage</p>
+                        <p className="comparison-detail">Arrivée garantie à l'heure</p>
+                    </div>
                 </div>
             </section>
 
-            {/* 🖼️ Carrousel */}
+            {/* Impact card */}
+            <section className="impact-section">
+                <div className="impact-card">
+                    <div className="impact-content">
+                        <h3 className="impact-title">Votre impact compte</h3>
+                        <p className="impact-text">
+                            Un trajet Paris - Lyon en train plutôt qu'en voiture, c'est <strong>120 kg de CO₂ économisés</strong>.
+                            L'équivalent de <strong>600 km parcourus en voiture</strong> ou <strong>15 jours de chauffage</strong> pour un appartement.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Carrousel */}
             <section className="carousel">
+                <h2 className="section-title">Destinations coup de cœur</h2>
                 <div className="carousel-slide">
                     <img
                         src={slides[slideIndex].image}
@@ -163,20 +219,40 @@ function Index() {
                 </div>
             </section>
 
-            {/* 🌍 Pourquoi choisir le train */}
+            {/* Pourquoi choisir le train */}
             <section className="reasons-section">
-                <h2 className="reasons-section-title">Pourquoi choisir le train ?</h2>
+                <h2 className="section-title">Les avantages du train</h2>
                 <div className="reasons-grid">
-                    <div className="reason"><FaLeaf /> 40x moins de CO₂</div>
-                    <div className="reason"><FaTrain /> Pas de bouchons</div>
-                    <div className="reason"><FaChair /> Confort & espace</div>
-                    <div className="reason"><FaWifi /> Wifi & prises</div>
-                    <div className="reason"><FaCity /> Gare en centre-ville</div>
+                    <div className="reason">
+                        <FaLeaf className="reason-icon" />
+                        <span className="reason-text">Eco-responsable</span>
+                    </div>
+                    <div className="reason">
+                        <FaTrain className="reason-text" />
+                        <span className="reason-text">Pas de bouchons</span>
+                    </div>
+                    <div className="reason">
+                        <FaChair className="reason-icon" />
+                        <span className="reason-text">Confort & espace</span>
+                    </div>
+                    <div className="reason">
+                        <FaWifi className="reason-icon" />
+                        <span className="reason-text">Wifi & prises</span>
+                    </div>
+                    <div className="reason">
+                        <FaCity className="reason-icon" />
+                        <span className="reason-text">Gare en centre-ville</span>
+                    </div>
+                    <div className="reason">
+                        <FaClock className="reason-icon" />
+                        <span className="reason-text">Ponctualité</span>
+                    </div>
                 </div>
             </section>
 
             <footer className="index-footer">
-                Voyager en train, c’est plus que se déplacer : <strong>c’est agir.</strong>
+                <p className="footer-main">Voyager en train, c'est plus que se déplacer : <strong>c'est agir pour demain.</strong></p>
+                <p className="footer-stat">🌱 Chaque année, le train évite l'émission de 3 millions de tonnes de CO₂ en France</p>
             </footer>
         </div>
     );

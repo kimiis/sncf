@@ -11,7 +11,6 @@ function Index() {
     const [slideIndex, setSlideIndex] = useState(0);
     const [fromCity, setFromCity] = useState("");
     const [toCity, setToCity] = useState("");
-    const [gares, setGares] = useState([]);
     const [suggestionsFrom, setSuggestionsFrom] = useState([]);
     const [suggestionsTo, setSuggestionsTo] = useState([]);
     const navigate = useNavigate();

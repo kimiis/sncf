@@ -23,22 +23,22 @@ class UserRepository {
         const user = await User.findOne({
             where: { user_id },
             attributes: [
-                'civilite',
                 'user_id',
                 'first_name',
                 'last_name',
                 'address',
                 'phone',
+                'postal_code',
+                'city',
                 'date_of_birth',
                 'email',
-                'createdAt',
+                'created_at',
                 'photo_url',
             ],
             include: [
                 {
                     model: Role,
-                    as: "roles",
-                    attributes: ["role_name"]
+                    attributes: ["name"]
                 },
             ]
         });

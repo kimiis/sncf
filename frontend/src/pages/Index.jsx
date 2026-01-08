@@ -13,20 +13,35 @@ function Index() {
     const [toCity, setToCity] = useState("");
     const [suggestionsFrom, setSuggestionsFrom] = useState([]);
     const [suggestionsTo, setSuggestionsTo] = useState([]);
+    const [destinations, setDestinations] = useState([]);
     const navigate = useNavigate();
 
-    const slides = [
-        { image: annecy, text: "Cap sur Annecy entre lac et montagnes" },
-        { image: coteAzur, text: "La Côte d'Azur sans voiture" },
-    ];
+    // Charger les destinations dynamiques depuis l'API
+    useEffect(() => {
+        const fetchDestinations = async () => {
+            try {
+                const { data } = await api.get("http://localhost:9000/sncf/destinations");
+                setDestinations(data);
+            } catch (err) {
+                console.error("Erreur lors du chargement des destinations:", err);
+                // Fallback sur des destinations par défaut en cas d'erreur
+                setDestinations([
+                    { id: 1, image: annecy, description: "Cap sur Annecy entre lac et montagnes", name: "Annecy" },
+                    { id: 2, image: coteAzur, description: "La Côte d'Azur sans voiture", name: "Nice" },
+                ]);
+            }
+        };
+        fetchDestinations();
+    }, []);
 
     // Carrousel (change toutes les 4 secondes)
     useEffect(() => {
+        if (destinations.length === 0) return;
         const interval = setInterval(() => {
-            setSlideIndex((prev) => (prev + 1) % slides.length);
+            setSlideIndex((prev) => (prev + 1) % destinations.length);
         }, 4000);
         return () => clearInterval(interval);
-    }, [slides.length]);
+    }, [destinations.length]);
 
     // Recherche
     const handleSearch = () => {
@@ -72,6 +87,57 @@ function Index() {
             setSuggestionsTo([]);
         }
     };
+
+    // Ajouter/retirer des favoris
+    const toggleFavoris = () => {
+        if (!fromCity || !toCity) {
+            alert("Veuillez sélectionner un trajet avant de l'ajouter aux favoris");
+            return;
+        }
+
+        // Récupérer les favoris existants
+        const existingFavoris = JSON.parse(localStorage.getItem('trajetFavoris') || '[]');
+
+        // Vérifier si le trajet existe déjà
+        const trajetExists = existingFavoris.some(
+            fav => fav.from === fromCity && fav.to === toCity
+        );
+
+        if (trajetExists) {
+            // Retirer des favoris
+            const updatedFavoris = existingFavoris.filter(
+                fav => !(fav.from === fromCity && fav.to === toCity)
+            );
+            localStorage.setItem('trajetFavoris', JSON.stringify(updatedFavoris));
+            setFavoris(false);
+            alert("Trajet retiré des favoris");
+        } else {
+            // Ajouter aux favoris
+            const newFavori = {
+                id: Date.now(),
+                from: fromCity,
+                to: toCity,
+                date: new Date().toISOString()
+            };
+            existingFavoris.push(newFavori);
+            localStorage.setItem('trajetFavoris', JSON.stringify(existingFavoris));
+            setFavoris(true);
+            alert("Trajet ajouté aux favoris !");
+        }
+    };
+
+    // Vérifier si le trajet actuel est en favoris
+    useEffect(() => {
+        if (fromCity && toCity) {
+            const existingFavoris = JSON.parse(localStorage.getItem('trajetFavoris') || '[]');
+            const isFavorite = existingFavoris.some(
+                fav => fav.from === fromCity && fav.to === toCity
+            );
+            setFavoris(isFavorite);
+        } else {
+            setFavoris(false);
+        }
+    }, [fromCity, toCity]);
 
     return (
         <div className="index-page">
@@ -132,8 +198,9 @@ function Index() {
             </section>
 
             {/* Favoris */}
-            <p className="favoris-text" onClick={() => setFavoris(!favoris)}>
-                <FaHeart className={favoris ? "favoris active" : "favoris"} /> Mettre ce trajet en favoris
+            <p className="favoris-text" onClick={toggleFavoris}>
+                <FaHeart className={favoris ? "favoris active" : "favoris"} />
+                {favoris ? "Retirer des favoris" : "Mettre ce trajet en favoris"}
             </p>
 
             {/* Section comparaison Train vs Voiture */}
@@ -198,24 +265,34 @@ function Index() {
             {/* Carrousel */}
             <section className="carousel">
                 <h2 className="section-title">Destinations coup de cœur</h2>
-                <div className="carousel-slide">
-                    <img
-                        src={slides[slideIndex].image}
-                        alt={`slide-${slideIndex}`}
-                        className="carousel-img"
-                    />
-                    <p className="carousel-text">{slides[slideIndex].text}</p>
-                </div>
+                {destinations.length > 0 && (
+                    <>
+                        <div className="carousel-slide">
+                            <img
+                                src={destinations[slideIndex].image}
+                                alt={destinations[slideIndex].name}
+                                className="carousel-img"
+                            />
+                            <div className="carousel-text-overlay">
+                                <h3>{destinations[slideIndex].name}</h3>
+                                <p>{destinations[slideIndex].description}</p>
+                                {destinations[slideIndex].region && (
+                                    <span className="region-badge">{destinations[slideIndex].region}</span>
+                                )}
+                            </div>
+                        </div>
 
-                <div className="carousel-dots">
-                    {slides.map((_, i) => (
-                        <span
-                            key={i}
-                            className={`dot ${i === slideIndex ? "active" : ""}`}
-                            onClick={() => setSlideIndex(i)}
-                        ></span>
-                    ))}
-                </div>
+                        <div className="carousel-dots">
+                            {destinations.map((_, i) => (
+                                <span
+                                    key={i}
+                                    className={`dot ${i === slideIndex ? "active" : ""}`}
+                                    onClick={() => setSlideIndex(i)}
+                                ></span>
+                            ))}
+                        </div>
+                    </>
+                )}
             </section>
 
             {/* Pourquoi choisir le train */}

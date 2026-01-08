@@ -8,6 +8,7 @@ from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
 import os
 import time
+import random
 
 app = FastAPI()
 
@@ -255,167 +256,222 @@ def extract_route_coordinates(journey):
 
     return coordinates
 
-
-def get_hotels_near(lat_gare: float, lon_gare: float, radius_m: int = 1000):
+def get_hotels_near(
+        lat_gare: float,
+        lon_gare: float,
+        radius_m: int = 1200,
+        limit: int = 10,
+):
     """
-    Retourne une liste d'hôtels OSM proches:
+    Retourne une liste d'hôtels OSM proches.
     [{name, lat, lon, distance_km_from_station}, ...]
     """
     query = f"""
-    [out:json];
+    [out:json][timeout:25];
     (
       node["tourism"="hotel"](around:{radius_m},{lat_gare},{lon_gare});
       way["tourism"="hotel"](around:{radius_m},{lat_gare},{lon_gare});
-      relation["tourism"="hotel"](around:{radius_m},{lat_gare},{lon_gare});
     );
-    out center;
+    out center {limit};
     """
-    cache_key = f"hotels_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}"
+    cache_key = f"hotels_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}_{limit}"
     data = overpass_query_cached(query, cache_key, timeout=25)
 
     hotels = []
     for el in data.get("elements", []):
         tags = el.get("tags", {})
         name = tags.get("name")
+        if not name:
+            # si tu préfères afficher quand même:
+            # name = "Hôtel"
+            continue
 
-        if el["type"] == "node":
-            h_lat = el.get("lat")
-            h_lon = el.get("lon")
-        else:
+        # Pour les ways, utiliser 'center', pour les nodes utiliser lat/lon directement
+        if el.get("type") == "way":
             center = el.get("center", {})
             h_lat = center.get("lat")
             h_lon = center.get("lon")
+        else:
+            h_lat = el.get("lat")
+            h_lon = el.get("lon")
 
-        if name and h_lat is not None and h_lon is not None:
-            dist_km = distance_haversine(lat_gare, lon_gare, h_lat, h_lon)
-            dist_km = round(dist_km, 2)
-            hotels.append(
-                {
-                    "name": name,
-                    "lat": h_lat,
-                    "lon": h_lon,
-                    "distance_km_from_station": dist_km,
-                }
-            )
+        if h_lat is None or h_lon is None:
+            continue
+
+        dist_km = round(distance_haversine(lat_gare, lon_gare, h_lat, h_lon), 2)
+        hotels.append({
+            "name": name,
+            "lat": h_lat,
+            "lon": h_lon,
+            "distance_km_from_station": dist_km,
+        })
 
     hotels.sort(key=lambda x: x["distance_km_from_station"])
     return hotels
 
-
-def get_bike_stations_near(lat_gare: float, lon_gare: float, radius_m: int = 500):
+def get_bike_stations_near(
+        lat_gare: float,
+        lon_gare: float,
+        radius_m: int = 600,
+        limit: int = 80,
+):
     """
-    Retourne une liste de stations vélo en libre-service (Bicloo, Vélib, etc.) OSM proches :
+    Retourne une liste de stations vélo en libre-service.
     [{name, lat, lon, distance_km_from_station, type}, ...]
     """
     query = f"""
-    [out:json];
+    [out:json][timeout:25];
     (
       node["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
       way["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
-      relation["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
     );
-    out center;
+    out center {limit};
     """
-    cache_key = f"bikes_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}"
+    cache_key = f"bikes_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}_{limit}"
     data = overpass_query_cached(query, cache_key, timeout=25)
 
     stations = []
     for el in data.get("elements", []):
         tags = el.get("tags", {})
-        name = tags.get("name")
-        amenity_type = tags.get("amenity")
+        name = tags.get("name", "Station vélo")
+        amenity_type = tags.get("amenity", "bicycle_rental")
 
-        if el["type"] == "node":
-            s_lat = el.get("lat")
-            s_lon = el.get("lon")
-        else:
+        # Pour les ways, utiliser 'center', pour les nodes utiliser lat/lon directement
+        if el.get("type") == "way":
             center = el.get("center", {})
             s_lat = center.get("lat")
             s_lon = center.get("lon")
+        else:
+            s_lat = el.get("lat")
+            s_lon = el.get("lon")
 
         if s_lat is None or s_lon is None:
             continue
 
-        dist_km = distance_haversine(lat_gare, lon_gare, s_lat, s_lon)
-        dist_km = round(dist_km, 2)
+        dist_km = round(distance_haversine(lat_gare, lon_gare, s_lat, s_lon), 2)
 
-        stations.append(
-            {
-                "name": name,
-                "lat": s_lat,
-                "lon": s_lon,
-                "distance_km_from_station": dist_km,
-                "type": amenity_type,
-            }
-        )
+        stations.append({
+            "name": name,
+            "lat": s_lat,
+            "lon": s_lon,
+            "distance_km_from_station": dist_km,
+            "type": amenity_type,
+        })
 
     stations.sort(key=lambda x: x["distance_km_from_station"])
     return stations
 
-
-def get_activities_near(lat_gare: float, lon_gare: float, radius_m: int = 2000):
+def get_parkings_near(lat_gare: float, lon_gare: float, radius_m: int = 800, limit: int = 10):
     """
-    Retourne une liste d'activités OSM proches :
+    Retourne une liste de parkings OSM proches.
+    [{name, lat, lon, distance_km_from_station, capacity, fee}, ...]
+    """
+    query = f"""
+    [out:json][timeout:25];
+    (
+      node["amenity"="parking"](around:{radius_m},{lat_gare},{lon_gare});
+      way["amenity"="parking"](around:{radius_m},{lat_gare},{lon_gare});
+    );
+    out center {limit};
+    """
+    cache_key = f"parkings_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}_{limit}"
+    data = overpass_query_cached(query, cache_key, timeout=25)
+
+    parkings = []
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        name = tags.get("name", "Parking")
+        capacity = tags.get("capacity")
+        fee = tags.get("fee", "unknown")
+
+        # Pour les ways, utiliser 'center', pour les nodes utiliser lat/lon directement
+        if el.get("type") == "way":
+            center = el.get("center", {})
+            p_lat = center.get("lat")
+            p_lon = center.get("lon")
+        else:
+            p_lat = el.get("lat")
+            p_lon = el.get("lon")
+
+        if p_lat is None or p_lon is None:
+            continue
+
+        dist_km = round(distance_haversine(lat_gare, lon_gare, p_lat, p_lon), 2)
+        parkings.append({
+            "name": name,
+            "lat": p_lat,
+            "lon": p_lon,
+            "distance_km_from_station": dist_km,
+            "capacity": capacity,
+            "fee": fee,
+        })
+
+    parkings.sort(key=lambda x: x["distance_km_from_station"])
+    return parkings
+
+def get_activities_near(
+        lat_gare: float,
+        lon_gare: float,
+        radius_m: int = 1200,
+        limit: int = 20,
+):
+    """
+    Activités OSM proches
     [{name, lat, lon, distance_km_from_station, category}, ...]
     """
     print(f"[DEBUG] Recherche activites autour de ({lat_gare}, {lon_gare}) rayon={radius_m}m")
+
     query = f"""
-    [out:json];
+    [out:json][timeout:25];
     (
-      node["tourism"~"museum|attraction|gallery|viewpoint"](around:{radius_m},{lat_gare},{lon_gare});
-      way["tourism"~"museum|attraction|gallery|viewpoint"](around:{radius_m},{lat_gare},{lon_gare});
-      relation["tourism"~"museum|attraction|gallery|viewpoint"](around:{radius_m},{lat_gare},{lon_gare});
-      node["leisure"~"park|pitch|sports_centre|stadium|swimming_pool"](around:{radius_m},{lat_gare},{lon_gare});
-      way["leisure"~"park|pitch|sports_centre|stadium|swimming_pool"](around:{radius_m},{lat_gare},{lon_gare});
-      relation["leisure"~"park|pitch|sports_centre|stadium|swimming_pool"](around:{radius_m},{lat_gare},{lon_gare});
-      node["amenity"~"restaurant|cafe|bar|pub|fast_food|cinema|theatre"](around:{radius_m},{lat_gare},{lon_gare});
-      way["amenity"~"restaurant|cafe|bar|pub|fast_food|cinema|theatre"](around:{radius_m},{lat_gare},{lon_gare});
-      relation["amenity"~"restaurant|cafe|bar|pub|fast_food|cinema|theatre"](around:{radius_m},{lat_gare},{lon_gare});
+      node(around:{radius_m},{lat_gare},{lon_gare})["tourism"~"^(museum|attraction|gallery|viewpoint)$"];
+      way(around:{radius_m},{lat_gare},{lon_gare})["tourism"~"^(museum|attraction|gallery|viewpoint)$"];
+      node(around:{radius_m},{lat_gare},{lon_gare})["leisure"~"^(park|pitch|sports_centre|stadium|swimming_pool)$"];
+      way(around:{radius_m},{lat_gare},{lon_gare})["leisure"~"^(park|pitch|sports_centre|stadium|swimming_pool)$"];
+      node(around:{radius_m},{lat_gare},{lon_gare})["amenity"~"^(restaurant|cafe|bar|pub|fast_food|cinema|theatre)$"];
+      way(around:{radius_m},{lat_gare},{lon_gare})["amenity"~"^(restaurant|cafe|bar|pub|fast_food|cinema|theatre)$"];
     );
-    out center;
+    out center {limit};
     """
-    cache_key = f"activities_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}"
-    data = overpass_query_cached(query, cache_key, timeout=30)
+
+    cache_key = f"activities_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}_{limit}"
+    data = overpass_query_cached(query, cache_key, timeout=25)
     print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
 
     activities = []
     for el in data.get("elements", []):
         tags = el.get("tags", {})
-        name = tags.get("name")
+        name = tags.get("name", "Activité")
         tourism = tags.get("tourism")
         leisure = tags.get("leisure")
         amenity = tags.get("amenity")
 
-        if el["type"] == "node":
-            a_lat = el.get("lat")
-            a_lon = el.get("lon")
-        else:
+        # Pour les ways, utiliser 'center', pour les nodes utiliser lat/lon directement
+        if el.get("type") == "way":
             center = el.get("center", {})
             a_lat = center.get("lat")
             a_lon = center.get("lon")
+        else:
+            a_lat = el.get("lat")
+            a_lon = el.get("lon")
 
         if a_lat is None or a_lon is None:
             continue
 
-        dist_km = distance_haversine(lat_gare, lon_gare, a_lat, a_lon)
-        dist_km = round(dist_km, 2)
-
+        dist_km = round(distance_haversine(lat_gare, lon_gare, a_lat, a_lon), 2)
         category = tourism or leisure or amenity
 
-        activities.append(
-            {
-                "name": name,
-                "lat": a_lat,
-                "lon": a_lon,
-                "distance_km_from_station": dist_km,
-                "category": category,
-                "raw_tags": tags,
-            }
-        )
+        activities.append({
+            "name": name,
+            "lat": a_lat,
+            "lon": a_lon,
+            "distance_km_from_station": dist_km,
+            "category": category,
+            # "raw_tags": tags,  # <-- enlève si tu veux alléger la réponse API aussi
+        })
 
     activities.sort(key=lambda x: x["distance_km_from_station"])
-    # Limite à 50 résultats max pour éviter les timeouts
-    return activities[:50]
+    return activities[:20]
 
 
 @app.get("/trajet")
@@ -435,6 +491,7 @@ def trajet(
     hotels_proches = []
     stations_velo_proches = []
     activites_proches = []
+    parkings_proches = []
 
     # Récup codes UIC
     try:
@@ -501,12 +558,20 @@ def trajet(
             print(f"[ERROR] Erreur get_coords: {e}")
             lat_dep = lon_dep = lat_arr = lon_arr = None
 
-        # Hôtels / vélos / activités proches de la gare d'arrivée
+        # Parkings proches de la gare de DÉPART
+        if lat_dep is not None and lon_dep is not None:
+            print(f"[DEBUG] Recherche parkings autour de la gare de depart...")
+            parkings_proches = get_parkings_near(lat_dep, lon_dep, radius_m=800)
+            print(f"[DEBUG] {len(parkings_proches)} parkings trouves")
+        else:
+            print(f"[WARNING] Coordonnees depart non trouvees, pas de recherche parkings")
+
+        # Hôtels / vélos / activités proches de la gare d'ARRIVÉE
         if lat_arr is not None and lon_arr is not None:
             print(f"[DEBUG] Recherche POI autour de la gare d'arrivee...")
-            hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=2000)
-            stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=1000)
-            activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=2000)
+            hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1200)
+            stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=800)
+            activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=1200)
             print(f"[DEBUG] Resultats: {len(hotels_proches)} hotels, {len(stations_velo_proches)} velos, {len(activites_proches)} activites")
         else:
             print(f"[WARNING] Coordonnees arrivee non trouvees, pas de recherche POI")
@@ -540,5 +605,102 @@ def trajet(
         "hotels_proches": hotels_proches,
         "stations_velo_proches": stations_velo_proches,
         "activites_proches": activites_proches,
+        "parkings_proches": parkings_proches,
         "trajet_api_sncf_detail": journey,
     }
+
+
+@app.get("/sncf/destinations")
+def get_destinations():
+    """
+    Retourne une liste de destinations coup de cœur en France
+    avec des photos et descriptions
+    """
+    destinations = [
+        {
+            "id": 1,
+            "name": "Annecy",
+            "description": "Cap sur Annecy entre lac et montagnes",
+            "region": "Auvergne-Rhône-Alpes",
+            "image": "https://images.unsplash.com/photo-1564680219020-5bfe5ebc3807?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["lac", "montagne", "nature"]
+        },
+        {
+            "id": 2,
+            "name": "Nice",
+            "description": "La Côte d'Azur sans voiture",
+            "region": "Provence-Alpes-Côte d'Azur",
+            "image": "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["mer", "plage", "soleil"]
+        },
+        {
+            "id": 3,
+            "name": "Bordeaux",
+            "description": "Capitale mondiale du vin",
+            "region": "Nouvelle-Aquitaine",
+            "image": "https://images.unsplash.com/photo-1523906630133-f6934a1ab2b9?w=800&q=80",
+            "tags": ["vin", "gastronomie", "culture"]
+        },
+        {
+            "id": 4,
+            "name": "Lyon",
+            "description": "Entre gastronomie et patrimoine UNESCO",
+            "region": "Auvergne-Rhône-Alpes",
+            "image": "https://plus.unsplash.com/premium_photo-1742418148669-85fde84c4431?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["gastronomie", "culture", "histoire"]
+        },
+        {
+            "id": 5,
+            "name": "Strasbourg",
+            "description": "La capitale de Noël et de l'Europe",
+            "region": "Grand Est",
+            "image": "https://plus.unsplash.com/premium_photo-1734414857169-432aa294f3c5?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["culture", "architecture", "histoire"]
+        },
+        {
+            "id": 6,
+            "name": "La Rochelle",
+            "description": "Charme atlantique et vieux port",
+            "region": "Nouvelle-Aquitaine",
+            "image": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80",
+            "tags": ["mer", "port", "histoire"]
+        },
+        {
+            "id": 7,
+            "name": "Marseille",
+            "description": "Soleil, calanques et Méditerranée",
+            "region": "Provence-Alpes-Côte d'Azur",
+            "image": "https://images.unsplash.com/photo-1576244348464-c7d393b6dfc0?q=80&w=1193&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["mer", "nature", "culture"]
+        },
+        {
+            "id": 8,
+            "name": "Biarritz",
+            "description": "Surf et élégance au Pays Basque",
+            "region": "Nouvelle-Aquitaine",
+            "image": "https://images.unsplash.com/photo-1627076371043-6ae4375463b9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["surf", "plage", "océan"]
+        },
+        {
+            "id": 9,
+            "name": "Montpellier",
+            "description": "Ville étudiante et méditerranéenne",
+            "region": "Occitanie",
+            "image": "https://images.unsplash.com/photo-1590932303346-f20e0c1e7a96?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["soleil", "jeunesse", "culture"]
+        },
+        {
+            "id": 10,
+            "name": "Colmar",
+            "description": "Petite Venise alsacienne",
+            "region": "Grand Est",
+            "image": "https://images.unsplash.com/photo-1598710859838-d6b630235c56?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "tags": ["architecture", "charme", "vin"]
+        }
+    ]
+
+    # Retourner des destinations aléatoires (mélanger la liste)
+    shuffled = destinations.copy()
+    random.shuffle(shuffled)
+
+    return shuffled

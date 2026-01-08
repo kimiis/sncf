@@ -14,60 +14,9 @@ function Profil() {
         return localStorage.getItem("darkMode") === "true";
     });
 
-    // Données mockées pour favoris et historique (à remplacer par des vraies données API)
-    const [favoris] = useState([
-        { id: 1, from: "Paris", to: "Lyon", date: "2024-03-15" },
-        { id: 2, from: "Nantes", to: "Bordeaux", date: "2024-02-20" },
-        { id: 3, from: "Lille", to: "Marseille", date: "2024-01-10" },
-    ]);
-
-    const [historique] = useState([
-        {
-            id: 1,
-            from: "Paris",
-            to: "Lyon",
-            date: "2024-03-20",
-            duration: "2h05",
-            co2: "2.5 kg",
-            price: "45€"
-        },
-        {
-            id: 2,
-            from: "Nantes",
-            to: "Paris",
-            date: "2024-03-18",
-            duration: "2h15",
-            co2: "3.1 kg",
-            price: "52€"
-        },
-        {
-            id: 3,
-            from: "Lyon",
-            to: "Marseille",
-            date: "2024-03-15",
-            duration: "1h40",
-            co2: "1.8 kg",
-            price: "38€"
-        },
-        {
-            id: 4,
-            from: "Bordeaux",
-            to: "Toulouse",
-            date: "2024-03-10",
-            duration: "2h20",
-            co2: "2.9 kg",
-            price: "41€"
-        },
-        {
-            id: 5,
-            from: "Lille",
-            to: "Paris",
-            date: "2024-03-05",
-            duration: "1h05",
-            co2: "1.2 kg",
-            price: "28€"
-        },
-    ]);
+    // Récupérer l'historique et les favoris depuis localStorage
+    const [historique, setHistorique] = useState([]);
+    const [favoris, setFavoris] = useState([]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -86,6 +35,14 @@ function Profil() {
         };
 
         fetchUserData();
+
+        // Récupérer l'historique depuis localStorage
+        const loadedHistorique = JSON.parse(localStorage.getItem('trajetHistorique') || '[]');
+        setHistorique(loadedHistorique.slice(0, 5)); // Garder les 5 derniers
+
+        // Récupérer les favoris depuis localStorage
+        const loadedFavoris = JSON.parse(localStorage.getItem('trajetFavoris') || '[]');
+        setFavoris(loadedFavoris);
     }, [isAuthenticated, navigate, id]);
 
     const handleLogout = () => {
@@ -256,11 +213,13 @@ function Profil() {
                                         <div className="trajet-details">
                                             <div className="detail-item">
                                                 <FaClock />
-                                                <span>{trajet.duration}</span>
+                                                <span className="detail-label">Temps: </span>
+                                                <span className="detail-value">{trajet.duration}</span>
                                             </div>
-                                            <div className="detail-item">
+                                            <div className="detail-item eco">
                                                 <FaLeaf />
-                                                <span>{trajet.co2}</span>
+                                                <span className="detail-label">CO² éco.: </span>
+                                                <span className="detail-value">{trajet.co2Saved}</span>
                                             </div>
                                             <div className="detail-item price">
                                                 <span>{trajet.price}</span>
@@ -285,7 +244,12 @@ function Profil() {
                             <FaLeaf />
                         </div>
                         <div className="stat-content">
-                            <p className="stat-value">11.5 kg</p>
+                            <p className="stat-value">
+                                {historique.reduce((total, trajet) => {
+                                    const co2 = parseFloat(trajet.co2Saved) || 0;
+                                    return total + co2;
+                                }, 0).toFixed(1)} kg
+                            </p>
                             <p className="stat-label">CO₂ économisé</p>
                         </div>
                     </div>
@@ -294,8 +258,8 @@ function Profil() {
                             <FaTrain />
                         </div>
                         <div className="stat-content">
-                            <p className="stat-value">5</p>
-                            <p className="stat-label">Trajets effectués</p>
+                            <p className="stat-value">{historique.length}</p>
+                            <p className="stat-label">Trajets recherchés</p>
                         </div>
                     </div>
                     <div className="stat-card">
@@ -303,7 +267,21 @@ function Profil() {
                             <FaClock />
                         </div>
                         <div className="stat-content">
-                            <p className="stat-value">9h25</p>
+                            <p className="stat-value">
+                                {(() => {
+                                    const totalMinutes = historique.reduce((total, trajet) => {
+                                        // Parser "2h05" -> 125 minutes
+                                        const match = trajet.duration.match(/(\d+)h(\d+)/);
+                                        if (match) {
+                                            return total + parseInt(match[1]) * 60 + parseInt(match[2]);
+                                        }
+                                        return total;
+                                    }, 0);
+                                    const hours = Math.floor(totalMinutes / 60);
+                                    const minutes = totalMinutes % 60;
+                                    return `${hours}h${minutes.toString().padStart(2, '0')}`;
+                                })()}
+                            </p>
                             <p className="stat-label">Temps de voyage</p>
                         </div>
                     </div>

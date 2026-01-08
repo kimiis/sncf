@@ -54,6 +54,15 @@ const activityIcon = new L.Icon({
     shadowSize: [41, 41],
 });
 
+const parkingIcon = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png",
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+});
+
 // Categories d'activites
 const ACTIVITY_CATEGORIES = {
     restaurant: { label: "Restaurants & Cafes", icon: "🍽️", types: ["restaurant", "cafe", "fast_food"] },
@@ -87,6 +96,7 @@ export default function SearchResult() {
     const [showHotels, setShowHotels] = useState(false);
     const [showBikes, setShowBikes] = useState(false);
     const [showActivities, setShowActivities] = useState(false);
+    const [showParkings, setShowParkings] = useState(false);
 
     // Etats des sous-filtres activites
     const [activityFilters, setActivityFilters] = useState({
@@ -108,13 +118,42 @@ export default function SearchResult() {
                     params: { from_city: fromCity, to_city: toCity },
                 });
                 setTrajet(data);
+
+                // Sauvegarder le trajet dans l'historique (localStorage)
+                if (data && isAuthenticated) {
+                    const co2Saved = data.co2_voiture_kg && data.co2_train_kg
+                        ? (data.co2_voiture_kg - data.co2_train_kg).toFixed(1)
+                        : null;
+
+                    const trajetData = {
+                        id: Date.now(),
+                        from: fromCity,
+                        to: toCity,
+                        date: new Date().toISOString(),
+                        duration: data.duree || "N/A",
+                        co2Saved: co2Saved ? `${co2Saved} kg` : "N/A",
+                        price: data.prix_moyen ? `${Math.round(data.prix_moyen)}€` : "N/A"
+                    };
+
+                    // Récupérer l'historique existant
+                    const historique = JSON.parse(localStorage.getItem('trajetHistorique') || '[]');
+
+                    // Ajouter le nouveau trajet au début
+                    historique.unshift(trajetData);
+
+                    // Garder seulement les 10 derniers
+                    const updatedHistorique = historique.slice(0, 10);
+
+                    // Sauvegarder dans localStorage
+                    localStorage.setItem('trajetHistorique', JSON.stringify(updatedHistorique));
+                }
             } catch (err) {
                 console.error(err);
                 setError("Impossible de recuperer le trajet.");
             }
         };
         fetchTrajet();
-    }, [fromCity, toCity]);
+    }, [fromCity, toCity, isAuthenticated]);
 
     // Toggle un sous-filtre d'activite
     const toggleActivityFilter = (category) => {
@@ -166,6 +205,10 @@ export default function SearchResult() {
     const bikes = isAuthenticated
         ? trajet.stations_velo_proches || []
         : (trajet.stations_velo_proches || []).slice(0, LIMIT_NON_CONNECTED);
+
+    const parkings = isAuthenticated
+        ? trajet.parkings_proches || []
+        : (trajet.parkings_proches || []).slice(0, LIMIT_NON_CONNECTED);
 
     const allActivities = isAuthenticated
         ? trajet.activites_proches || []
@@ -224,6 +267,15 @@ export default function SearchResult() {
                         />
                         <span className="filter-icon">🎭</span>
                         Activites ({allActivities.length})
+                    </label>
+                    <label className="filter-item filter-parking">
+                        <input
+                            type="checkbox"
+                            checked={showParkings}
+                            onChange={(e) => setShowParkings(e.target.checked)}
+                        />
+                        <span className="filter-icon">🅿️</span>
+                        Parkings ({parkings.length})
                     </label>
                 </div>
 
@@ -344,6 +396,24 @@ export default function SearchResult() {
                         </Marker>
                     )
                 ))}
+
+                {/* Marqueurs Parkings */}
+                {showParkings && parkings.map((parking, idx) => (
+                    parking.lat && parking.lon && (
+                        <Marker
+                            key={`parking-${idx}`}
+                            position={[parking.lat, parking.lon]}
+                            icon={parkingIcon}
+                        >
+                            <Popup>
+                                <strong>🅿️ {parking.name}</strong><br />
+                                📍 {parking.distance_km_from_station} km de la gare<br />
+                                {parking.capacity && <span>Capacite : {parking.capacity} places<br /></span>}
+                                {parking.fee && <span>Payant : {parking.fee === "yes" ? "Oui" : parking.fee === "no" ? "Non" : "Inconnu"}</span>}
+                            </Popup>
+                        </Marker>
+                    )
+                ))}
                 </MapContainer>
             </div>
 
@@ -392,6 +462,29 @@ export default function SearchResult() {
                                     <h4>{activity.name || "Activite"}</h4>
                                     <p>📍 {activity.distance_km_from_station} km de la gare</p>
                                     <p className="poi-category">{activity.category}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Liste Parkings */}
+                {showParkings && parkings.length > 0 && (
+                    <div className="poi-section poi-parkings">
+                        <h3>🅿️ Parkings a proximite de {trajet.to_city}</h3>
+                        <div className="poi-grid">
+                            {parkings.map((parking, idx) => (
+                                <div key={`parking-list-${idx}`} className="poi-card">
+                                    <h4>{parking.name}</h4>
+                                    <p>📍 {parking.distance_km_from_station} km de la gare</p>
+                                    {parking.capacity && (
+                                        <p className="poi-type">📊 Capacite : {parking.capacity} places</p>
+                                    )}
+                                    {parking.fee && (
+                                        <p className="poi-type">
+                                            💰 {parking.fee === "yes" ? "Payant" : parking.fee === "no" ? "Gratuit" : "Tarif inconnu"}
+                                        </p>
+                                    )}
                                 </div>
                             ))}
                         </div>

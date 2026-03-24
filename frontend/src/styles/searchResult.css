@@ -1,117 +1,233 @@
-.poi-loading {
-    text-align: center;
-    color: #888;
-    font-style: italic;
-    padding: 0.5rem 0;
-    font-size: 0.95rem;
+/* ============================================
+   SEARCH RESULT PAGE — Mobile-first, RailGo
+   Palette : Almond #EDD9BE | Spruce #2D5443
+             Olive #8B9E6A  | Mauve Wood #A6706A
+   ============================================ */
+
+.sr-page {
+    background: #EDD9BE;
+    color: #2D5443;
+    font-family: "Poppins", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 3rem;
 }
 
-/* === HEADER RÉSULTAT === */
-.result-header {
+/* ── LOADING / ERROR ────────────────────────── */
+.sr-loading, .sr-error {
     display: flex;
     align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    font-size: 1rem;
+    color: #6B8870;
+    font-family: "Poppins", sans-serif;
+}
+.sr-error { color: #A6706A; }
+
+/* ── HERO ────────────────────────────────────── */
+.sr-hero {
+    background: linear-gradient(160deg, #2D5443 0%, #1F3D30 100%);
+    padding: 1.5rem 1.25rem 3rem;
+    position: relative;
+}
+
+.sr-hero-top {
+    display: flex;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    align-items: flex-start;
+    gap: 0.75rem;
 }
 
-.result-header h2 { margin: 0; }
+.sr-route-block { flex: 1; }
 
-/* === PRIX INDICATIF === */
-.prix-note {
-    font-size: 0.75rem;
-    color: #888;
-    font-weight: 400;
-    margin-left: 4px;
-}
-
-.avion-note {
-    font-size: 0.8rem;
-    color: #e74c3c;
-    margin-left: 4px;
-}
-
-/* === SHARE BUTTON === */
-.share-btn {
+.sr-route-title {
+    font-family: "Oswald", sans-serif;
+    font-size: 1.5rem;
+    color: #EDD9BE;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0.5rem 1.2rem;
-    background: #8B9E6A;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
+    gap: 0.6rem;
+    margin: 0 0 0.3rem;
+    line-height: 1.2;
 }
-.share-btn:hover { background: #7A8E5A; }
 
-/* === MÉTÉO === */
+.sr-route-icon { color: #8B9E6A; flex-shrink: 0; }
+
+.sr-date-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    color: rgba(237, 217, 190, 0.75);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+/* ── STATS CARD (flottante sur le hero) ──────── */
+.sr-stats-card {
+    background: #FAEEDD;
+    border-radius: 20px;
+    margin: -1.75rem 1rem 1.25rem;
+    padding: 1rem 0.75rem;
+    box-shadow: 0 8px 28px rgba(45, 84, 67, 0.18);
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.sr-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+}
+
+.sr-stat-icon {
+    color: #8B9E6A;
+    font-size: 1rem;
+}
+
+.sr-stat-val {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #2D5443;
+    line-height: 1.1;
+}
+
+.sr-stat-label {
+    font-size: 0.65rem;
+    color: #6B8870;
+}
+
+.sr-stat-divider {
+    width: 1px;
+    height: 38px;
+    background: #D4C4A8;
+    flex-shrink: 0;
+}
+
+/* ── SECTION HEADING ─────────────────────────── */
+.sr-section-title {
+    font-family: "Oswald", sans-serif;
+    font-size: 1.05rem;
+    color: #2D5443;
+    margin: 0 0 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sr-section-icon { color: #8B9E6A; }
+
+/* ── CARD GÉNÉRIQUE ──────────────────────────── */
+.sr-card {
+    background: #FAEEDD;
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin: 0 1rem 1rem;
+    box-shadow: 0 2px 12px rgba(45, 84, 67, 0.08);
+}
+
+/* ── MÉTÉO ───────────────────────────────────── */
 .weather-widget {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: linear-gradient(135deg, #F5E8D0, #EDD9BE);
-    border-radius: 12px;
-    padding: 0.8rem 1.2rem;
-    margin-bottom: 1rem;
-    max-width: 300px;
+    background: #FAEEDD;
+    border-radius: 16px;
+    padding: 0.9rem 1.25rem;
+    margin: 0 1rem 1rem;
+    box-shadow: 0 2px 12px rgba(45, 84, 67, 0.08);
 }
-.weather-loading { color: #888; font-style: italic; }
-.weather-icon { font-size: 2rem; }
-.weather-city { font-weight: 700; font-size: 0.95rem; margin: 0; }
-.weather-label { color: #555; font-size: 0.85rem; margin: 2px 0; }
-.weather-temp { margin: 0; }
-.temp-max { font-weight: 700; font-size: 1.1rem; color: #e67e22; }
-.temp-min { color: #888; font-size: 0.9rem; }
 
-/* === COMPARATIF TRANSPORT === */
-.transport-comparison {
-    background: #F5E8D0;
-    border-radius: 12px;
-    padding: 1.2rem 1.5rem;
-    margin: 1rem 0;
+.weather-icon { font-size: 2rem; }
+.weather-city { font-weight: 700; font-size: 0.9rem; color: #2D5443; margin: 0; }
+.weather-label { color: #6B8870; font-size: 0.82rem; margin: 2px 0; }
+.weather-temp { margin: 0; }
+.temp-max { font-weight: 800; font-size: 1.05rem; color: #2D5443; }
+.temp-min { color: #8B9E6A; font-size: 0.85rem; }
+.weather-loading { color: #6B8870; font-style: italic; font-size: 0.9rem; }
+
+/* ── CO2 BARRES ──────────────────────────────── */
+.sr-transport-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
 }
-.transport-comparison h3 { margin-bottom: 1rem; font-size: 1rem; }
-.transport-bar-row {
+
+.sr-bar-row {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    margin-bottom: 0.6rem;
+    gap: 0.6rem;
 }
-.transport-bar-label { width: 80px; font-size: 0.9rem; }
-.transport-bar-track {
+
+.sr-bar-label {
+    width: 82px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    color: #2D5443;
+}
+
+.sr-bar-track {
     flex: 1;
-    background: #e9ecef;
+    background: #E8DCC8;
     border-radius: 6px;
-    height: 18px;
+    height: 13px;
     overflow: hidden;
 }
-.transport-bar-fill {
+
+.sr-bar-fill {
     height: 100%;
     border-radius: 6px;
-    transition: width 0.8s ease;
+    transition: width 0.9s ease;
 }
-.transport-bar-val { width: 65px; font-size: 0.85rem; font-weight: 600; }
 
-/* === CO2 EQUIVALENCES === */
+.sr-bar-fill-train  { background: #8B9E6A; }
+.sr-bar-fill-car    { background: #C0392B; }
+.sr-bar-fill-plane  { background: #E8853C; }
+
+.sr-bar-val {
+    width: 60px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
+    flex-shrink: 0;
+    color: #2D5443;
+}
+
+/* ── CO2 EQUIVALENCES (override) ─────────────── */
 .co2-equiv-section {
     background: linear-gradient(135deg, #F5E8D0, #EDD9BE);
     border-radius: 16px;
-    padding: 1.5rem;
-    margin: 1rem 0;
+    padding: 1.25rem;
+    margin: 0 1rem 1rem;
     opacity: 0;
     transform: translateY(15px);
     transition: opacity 0.6s ease, transform 0.6s ease;
 }
 .co2-equiv-section.co2-visible { opacity: 1; transform: translateY(0); }
-.co2-equiv-title { font-size: 1rem; margin-bottom: 1rem; color: #2D5443; }
+.co2-equiv-title {
+    font-family: "Oswald", sans-serif;
+    font-size: 1.05rem;
+    color: #2D5443;
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 .co2-equiv-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.75rem;
 }
 .co2-equiv-card {
     display: flex;
@@ -119,379 +235,375 @@
     align-items: center;
     background: #FAEEDD;
     border-radius: 12px;
-    padding: 1rem 0.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 0.9rem 0.5rem;
+    box-shadow: 0 2px 8px rgba(45, 84, 67, 0.07);
 }
-.co2-equiv-icon { font-size: 2rem; margin-bottom: 0.4rem; }
-.co2-equiv-value { font-size: 1.3rem; font-weight: 800; color: #8B9E6A; }
-.co2-equiv-label { font-size: 0.75rem; color: #666; text-align: center; margin-top: 2px; }
+.co2-equiv-icon { font-size: 1.8rem; margin-bottom: 0.3rem; }
+.co2-equiv-value { font-size: 1.2rem; font-weight: 800; color: #8B9E6A; }
+.co2-equiv-label { font-size: 0.7rem; color: #6B8870; text-align: center; margin-top: 2px; }
 
-/* === PROCHAINS DÉPARTS === */
-.prochains-departs {
-    margin: 1rem 0;
-    background: #F5E8D0;
+/* ── PROCHAINS DÉPARTS ───────────────────────── */
+.sr-departs-scroll {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+}
+.sr-departs-scroll::-webkit-scrollbar { display: none; }
+
+.sr-depart-chip {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0.65rem 1rem;
+    border: 2px solid #D4C4A8;
     border-radius: 12px;
-    padding: 1.2rem;
-}
-.prochains-departs h3 { margin-bottom: 0.8rem; font-size: 1rem; }
-.departs-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-}
-.depart-tab {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.6rem 1rem;
-    border: 2px solid #ddd;
-    border-radius: 10px;
-    background: #FAEEDD;
+    background: #fff;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 0.9rem;
+    min-width: 95px;
+    font-family: "Poppins", sans-serif;
 }
-.depart-tab.active { border-color: #8B9E6A; background: #e8f5f4; }
-.depart-time { font-weight: 700; }
-.depart-arrow { color: #8B9E6A; }
-.depart-duree { color: #666; font-size: 0.8rem; }
-.depart-changes { background: #fff3cd; color: #856404; padding: 1px 6px; border-radius: 8px; font-size: 0.75rem; }
 
-/* === ALERTE PRIX === */
-.alert-prix-section { margin: 0.5rem 0 1rem; }
-.alert-prix-btn {
-    background: none;
-    border: 2px dashed #8B9E6A;
-    color: #8B9E6A;
-    padding: 0.5rem 1.2rem;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
+.sr-depart-chip:hover { border-color: #8B9E6A; }
+.sr-depart-chip.active { border-color: #8B9E6A; background: #F0F4E8; }
+
+.sr-depart-times {
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: #2D5443;
 }
-.alert-prix-btn:hover { background: #8B9E6A; color: white; }
-.alert-prix-form {
+
+.sr-depart-arrow { color: #8B9E6A; font-size: 0.7rem; }
+
+.sr-depart-dur {
+    font-size: 0.72rem;
+    color: #6B8870;
+}
+
+.sr-depart-chg {
+    font-size: 0.68rem;
+    background: #FFF3CD;
+    color: #856404;
+    padding: 1px 7px;
+    border-radius: 8px;
+    margin-top: 2px;
+}
+
+/* ── ALERTE PRIX ─────────────────────────────── */
+.sr-alert-btn {
+    width: 100%;
+    background: none;
+    border: 2px dashed #A6706A;
+    color: #A6706A;
+    border-radius: 12px;
+    padding: 0.65rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    font-family: "Poppins", sans-serif;
+}
+.sr-alert-btn:hover { background: #A6706A; color: white; }
+
+.sr-alert-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex-wrap: wrap;
     font-size: 0.9rem;
+    color: #2D5443;
 }
-.alert-prix-form input {
+
+.sr-alert-form input {
     width: 70px;
     padding: 0.4rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 8px;
     font-size: 1rem;
     text-align: center;
+    font-family: "Poppins", sans-serif;
+    color: #2D5443;
+    background: #fff;
+    outline: none;
 }
-.alert-prix-save {
-    background: #8B9E6A;
+
+.sr-alert-save {
+    background: #A6706A;
     color: white;
     border: none;
-    padding: 0.4rem 0.9rem;
+    padding: 0.4rem 1rem;
     border-radius: 8px;
     cursor: pointer;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
 }
-.alert-prix-cancel {
+.sr-alert-save:hover { background: #8F5E59; }
+
+.sr-alert-cancel {
     background: none;
-    border: 1px solid #ddd;
+    border: 1.5px solid #D4C4A8;
     padding: 0.4rem 0.9rem;
     border-radius: 8px;
     cursor: pointer;
-    color: #888;
+    color: #6B8870;
+    font-family: "Poppins", sans-serif;
 }
 
-/* Conteneur de la carte */
-.map-container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 0 20px;
-}
-
-.map-container .leaflet-container {
-    height: 500px !important;
-    width: 90% !important;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 1;
-}
-
-/* Informations trajet */
-.trajet-info {
-    width: 80%;
-    background: #FAEEDD;
-    padding: 15px 20px;
-    border-radius: 10px;
-    margin: 15px auto;
-    max-width: 600px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.trajet-info p {
-    margin: 8px 0;
-    font-size: 1rem;
-}
-
-.co2-info {
-    color: #2e7d32;
-}
-
-/* Conteneur des filtres */
-.filters-container {
-    width: 80%;
-    background: #FAEEDD;
-    padding: 15px 20px;
-    border-radius: 10px;
-    margin: 15px auto;
-    max-width: 800px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.filters-container h3 {
-    margin: 0 0 12px 0;
-    font-size: 1rem;
-    color: #333;
-}
-
-.filters {
+/* ── FILTRES POI ─────────────────────────────── */
+.sr-filter-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
-    justify-content: center;
+    gap: 0.55rem;
 }
 
-.filter-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-weight: 500;
-    border: 2px solid #ddd;
-    background: #f9f9f9;
-}
-
-.filter-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.filter-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-.filter-icon {
-    font-size: 1.2rem;
-}
-
-/* Couleurs des filtres */
-.filter-hotel {
-    border-color: #e53935;
-}
-
-.filter-hotel:has(input:checked) {
-    background: #ffebee;
-    border-color: #e53935;
-}
-
-.filter-bike {
-    border-color: #43a047;
-}
-
-.filter-bike:has(input:checked) {
-    background: #e8f5e9;
-    border-color: #43a047;
-}
-
-.filter-activity {
-    border-color: #fb8c00;
-}
-
-.filter-activity:has(input:checked) {
-    background: #fff3e0;
-    border-color: #fb8c00;
-}
-
-/* Sous-filtres activites */
-.sub-filters {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
-}
-
-.sub-filters h4 {
-    margin: 0 0 12px 0;
-    font-size: 0.95rem;
-    color: #555;
-}
-
-.sub-filters-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-}
-
-.sub-filter-item {
+.sr-filter-btn {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 0.5rem 0.9rem;
     border-radius: 20px;
+    border: 2px solid transparent;
+    background: #F5E8D0;
+    color: #2D5443;
+    font-weight: 600;
+    font-size: 0.83rem;
     cursor: pointer;
-    font-size: 0.9rem;
-    border: 1px solid #ddd;
-    background: #f5f5f5;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
+    font-family: "Poppins", sans-serif;
 }
 
-.sub-filter-item:hover {
-    background: #eee;
+.sr-filter-count {
+    background: rgba(45, 84, 67, 0.1);
+    border-radius: 10px;
+    padding: 0 6px;
+    font-size: 0.75rem;
 }
 
-.sub-filter-item.active {
-    background: #fff3e0;
-    border-color: #fb8c00;
-    color: #e65100;
+.sr-filter-btn-hotel  { border-color: #A6706A; }
+.sr-filter-btn-hotel.active  { background: #A6706A; color: white; }
+.sr-filter-btn-hotel.active .sr-filter-count { background: rgba(255,255,255,0.25); }
+
+.sr-filter-btn-bike   { border-color: #8B9E6A; }
+.sr-filter-btn-bike.active   { background: #8B9E6A; color: white; }
+.sr-filter-btn-bike.active .sr-filter-count { background: rgba(255,255,255,0.25); }
+
+.sr-filter-btn-activity { border-color: #2D5443; }
+.sr-filter-btn-activity.active { background: #2D5443; color: white; }
+.sr-filter-btn-activity.active .sr-filter-count { background: rgba(255,255,255,0.2); }
+
+.sr-filter-btn-parking { border-color: #C4A882; }
+.sr-filter-btn-parking.active { background: #C4A882; color: #2D5443; }
+
+/* ── SOUS-FILTRES ACTIVITÉS ──────────────────── */
+.sr-sub-filters {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #D4C4A8;
 }
 
-.sub-filter-item input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
+.sr-sub-label {
+    font-size: 0.78rem;
+    color: #6B8870;
+    margin-bottom: 0.5rem;
+}
+
+.sr-sub-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.sr-sub-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.35rem 0.75rem;
+    border-radius: 15px;
+    border: 1.5px solid #D4C4A8;
+    background: #F5E8D0;
+    color: #6B8870;
+    font-size: 0.78rem;
     cursor: pointer;
+    transition: all 0.2s;
+    font-family: "Poppins", sans-serif;
 }
+.sr-sub-btn.active { border-color: #2D5443; background: #2D5443; color: white; }
 
-.sub-filter-icon {
-    font-size: 1rem;
-}
-
-/* Message de limite */
-.limit-warning {
-    margin-top: 12px;
-    padding: 8px 15px;
-    background: #fff3cd;
-    border: 1px solid #ffc107;
+.sr-limit-warn {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.9rem;
+    background: #FFF3CD;
+    border: 1px solid #FFC107;
     border-radius: 8px;
     color: #856404;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     text-align: center;
 }
 
-/* Listes des POI */
-.poi-lists {
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+/* ── POI LOADING ─────────────────────────────── */
+.sr-poi-loading {
+    text-align: center;
+    color: #6B8870;
+    font-style: italic;
+    padding: 0.6rem 1rem;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
-.poi-section {
-    margin-bottom: 30px;
+/* ── CARTE ───────────────────────────────────── */
+.sr-map {
+    margin: 0 1rem 1rem;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(45, 84, 67, 0.14);
+}
+
+.sr-map .leaflet-container {
+    height: 320px !important;
+    width: 100% !important;
+}
+
+/* ── POI LISTES ──────────────────────────────── */
+.sr-poi-section {
+    margin: 0 1rem 0.5rem;
+}
+
+.sr-poi-section-title {
+    font-family: "Oswald", sans-serif;
+    font-size: 1rem;
+    color: #2D5443;
+    margin: 0 0 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.sr-poi-scroll {
+    display: flex;
+    gap: 0.65rem;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+    scrollbar-width: none;
+}
+.sr-poi-scroll::-webkit-scrollbar { display: none; }
+
+.sr-poi-card {
+    flex-shrink: 0;
+    width: 170px;
     background: #FAEEDD;
     border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 0.85rem 0.9rem;
+    box-shadow: 0 2px 8px rgba(45, 84, 67, 0.07);
+    border-left: 3px solid #D4C4A8;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.sr-poi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(45,84,67,0.13); }
+
+.sr-poi-hotels    .sr-poi-card { border-left-color: #A6706A; }
+.sr-poi-bikes     .sr-poi-card { border-left-color: #8B9E6A; }
+.sr-poi-activities .sr-poi-card { border-left-color: #2D5443; }
+.sr-poi-parkings  .sr-poi-card { border-left-color: #C4A882; }
+
+.sr-poi-card-name {
+    font-weight: 700;
+    font-size: 0.83rem;
+    color: #2D5443;
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.poi-section h3 {
-    margin: 0 0 15px 0;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #eee;
+.sr-poi-card-dist {
+    font-size: 0.76rem;
+    color: #6B8870;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-.poi-hotels h3 {
-    border-bottom-color: #e53935;
-}
-
-.poi-bikes h3 {
-    border-bottom-color: #43a047;
-}
-
-.poi-activities h3 {
-    border-bottom-color: #fb8c00;
-}
-
-.poi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
-}
-
-.poi-card {
-    background: #f9f9f9;
+.sr-poi-card-tag {
+    display: inline-block;
+    margin-top: 0.4rem;
+    padding: 2px 8px;
     border-radius: 10px;
-    padding: 15px;
-    transition: all 0.2s ease;
-    border-left: 4px solid #ddd;
-}
-
-.poi-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.poi-hotels .poi-card {
-    border-left-color: #e53935;
-}
-
-.poi-bikes .poi-card {
-    border-left-color: #43a047;
-}
-
-.poi-activities .poi-card {
-    border-left-color: #fb8c00;
-}
-
-.poi-card h4 {
-    margin: 0 0 8px 0;
-    font-size: 1rem;
-    color: #333;
-}
-
-.poi-card p {
-    margin: 4px 0;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.poi-type {
-    display: inline-block;
-    padding: 3px 10px;
-    background: #e8f5e9;
-    border-radius: 15px;
-    font-size: 0.85rem;
-    color: #2e7d32;
-    margin-top: 5px;
-}
-
-.poi-category {
-    display: inline-block;
-    padding: 3px 10px;
-    background: #fff3e0;
-    border-radius: 15px;
-    font-size: 0.85rem;
-    color: #e65100;
-    margin-top: 5px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #F5E8D0;
+    color: #2D5443;
     text-transform: capitalize;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-    .filters {
-        flex-direction: column;
-        align-items: stretch;
-    }
+/* ── SHARE BUTTON ────────────────────────────── */
+.share-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.5rem 1.1rem;
+    background: rgba(255, 255, 255, 0.15);
+    color: #EDD9BE;
+    border: 1.5px solid rgba(237, 217, 190, 0.4);
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: "Poppins", sans-serif;
+}
+.share-btn:hover { background: rgba(255,255,255,0.25); }
 
-    .filter-item {
-        justify-content: center;
-    }
+/* ── DARK MODE ───────────────────────────────── */
+body.dark .sr-page { background: var(--bg-page); color: var(--text); }
+body.dark .sr-stats-card { background: var(--bg-card); }
+body.dark .sr-stat-val { color: var(--text); }
+body.dark .sr-card { background: var(--bg-card); }
+body.dark .sr-section-title { color: var(--text); }
+body.dark .weather-widget { background: var(--bg-card); }
+body.dark .weather-city { color: var(--text) !important; }
+body.dark .sr-bar-label { color: var(--text); }
+body.dark .sr-bar-val { color: var(--text); }
+body.dark .sr-bar-track { background: var(--bg-section); }
+body.dark .sr-depart-chip { background: var(--bg-section); border-color: var(--border); }
+body.dark .sr-depart-times { color: var(--text); }
+body.dark .sr-filter-btn { background: var(--bg-section); color: var(--text); }
+body.dark .sr-sub-btn { background: var(--bg-section); color: var(--text-muted); border-color: var(--border); }
+body.dark .sr-poi-card { background: var(--bg-card); }
+body.dark .sr-poi-card-name { color: var(--text); }
+body.dark .co2-equiv-section { background: var(--bg-section); }
+body.dark .co2-equiv-card { background: var(--bg-card); }
+body.dark .sr-alert-form input { background: var(--bg-section); border-color: var(--border); color: var(--text); }
 
-    .poi-grid {
-        grid-template-columns: 1fr;
-    }
+/* ── RESPONSIVE ──────────────────────────────── */
+@media (min-width: 480px) {
+    .sr-hero { padding: 2rem 1.5rem 3rem; }
+    .sr-route-title { font-size: 1.8rem; }
+    .sr-stats-card { margin: -1.75rem 1.5rem 1.25rem; }
+    .sr-card { margin: 0 1.5rem 1rem; }
+    .sr-map { margin: 0 1.5rem 1rem; }
+    .sr-poi-section { margin: 0 1.5rem 0.5rem; }
+    .co2-equiv-section { margin: 0 1.5rem 1rem; }
+}
+
+@media (min-width: 768px) {
+    .sr-hero { padding: 2.5rem 2rem 3.5rem; }
+    .sr-route-title { font-size: 2.2rem; }
+    .sr-stats-card { margin: -2rem 2rem 1.5rem; padding: 1.1rem 1.5rem; }
+    .sr-card, .sr-map, .sr-poi-section { margin-left: 2rem; margin-right: 2rem; }
+    .weather-widget { margin: 0 2rem 1rem; }
+    .co2-equiv-section { margin: 0 2rem 1rem; }
+    .sr-map .leaflet-container { height: 420px !important; }
+    .sr-stat-val { font-size: 1.15rem; }
 }

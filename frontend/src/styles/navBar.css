@@ -3,15 +3,15 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: auto;
-    background-color: #e7f1e8;
+    background-color: #EDD9BE;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.6rem 1.5rem;
+    padding: 0.5rem 1rem;
     box-shadow: 0 2px 8px rgba(0,0,0,.1);
     z-index: 1000;
     flex-wrap: wrap;
+    box-sizing: border-box;
 }
 
 /*!* --- LOGO --- *!*/
@@ -37,18 +37,18 @@
 .navItem {
     background: none;
     border: none;
-    color: #3e4c4b;
+    color: #2D5443;
     cursor: pointer;
     font-size: 1.3rem;
     transition: color 0.2s ease;
 }
 
 .navItem:hover {
-    color: #f47b7b;
+    color: #A6706A;
 }
 
 .navItem.active {
-    color: #f47b7b;
+    color: #A6706A;
 }
 
 .icon {
@@ -57,9 +57,19 @@
 
 .nav-slogan{
     text-align: center;
-    font-size: 15px;
+    font-size: 13px;
     font-family: "Oswald", sans-serif;
-    color: #2b3b3a;
-    margin-block: 0;
-    margin-inline: auto;
+    color: #2D5443;
+    margin: 0.2rem 0 0;
+    width: 100%;
+    order: 3;
+    opacity: 0.75;
+}
+
+@media (max-width: 480px) {
+    .navbar { padding: 0.5rem 0.75rem; }
+    .navbar-logo { height: 34px; }
+    .navbar-right { gap: 0.5rem; }
+    .navItem { font-size: 1.1rem; }
+    .nav-slogan { display: none; }
 }

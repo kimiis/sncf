@@ -1,5 +1,6 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
 
 import Home from "./pages/Home.jsx";
 import Index from "./pages/Index.jsx";
@@ -12,12 +13,15 @@ import './index.css';
 import "./styles/variable.css";
 
 import UnauthorizedPage from "./pages/UnauthorizedPage";
+import Inspiration from "./pages/Inspiration";
 
 function AppWrapper() {
   return (
-      <Router>
-        <App />
-      </Router>
+      <ThemeProvider>
+        <Router>
+          <App />
+        </Router>
+      </ThemeProvider>
   );
 }
 
@@ -33,6 +37,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/index" element={<Index />} />
             <Route path="/search" element={<SearchResult />} />
+            <Route path="/inspiration" element={<Inspiration />} />
 
           {/*/!* Pages accessibles à tout utilisateur connecté *!/*/}
           <Route element={<PrivateRoute />}>

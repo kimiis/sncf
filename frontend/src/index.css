@@ -1,3 +1,14 @@
+:root {
+  --bg-page: #EDD9BE;
+  --bg-card: #FAEEDD;
+  --bg-section: #F5E8D0;
+  --text: #2D5443;
+  --text-muted: #6B8870;
+  --border: #D4C4A8;
+  --accent: #8B9E6A;
+  --cta: #A6706A;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,6 +16,161 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-page);
+  color: var(--text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Variables dark mode appliquees sur body.dark par ThemeContext */
+body.dark {
+  --bg-page: #1C2420;
+  --bg-card: #253830;
+  --bg-section: #1F3029;
+  --text: #EDD9BE;
+  --text-muted: #C4A882;
+  --border: #3A5040;
+  --accent: #8B9E6A;
+  --cta: #A6706A;
+  background-color: var(--bg-page);
+  color: var(--text);
+}
+
+/* Pages principales */
+body.dark .index-page,
+body.dark .search-result-page,
+body.dark .inspiration-page {
+  background: var(--bg-page);
+  color: var(--text);
+}
+
+/* Cartes et sections */
+body.dark .trajet-info,
+body.dark .filters-container,
+body.dark .poi-section,
+body.dark .poi-card,
+body.dark .comparison-card,
+body.dark .impact-card,
+body.dark .transport-comparison,
+body.dark .prochains-departs,
+body.dark .depart-tab,
+body.dark .inspiration-card,
+body.dark .inspiration-card-body,
+body.dark .co2-equiv-card,
+body.dark .weather-widget {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Sections fond clair */
+body.dark .transport-comparison,
+body.dark .prochains-departs,
+body.dark .filters-container,
+body.dark .reasons-section,
+body.dark .comparison-section {
+  background: var(--bg-section);
+}
+
+/* Inputs et suggestions */
+body.dark .search-placeholder,
+body.dark input[type="text"],
+body.dark input[type="date"],
+body.dark input[type="number"],
+body.dark input[type="email"],
+body.dark input[type="password"],
+body.dark select {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.dark .suggestions {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+body.dark .suggestions li {
+  color: var(--text);
+}
+
+body.dark .suggestions li:hover {
+  background: var(--bg-section);
+}
+
+/* Textes secondaires */
+body.dark .hero-subtitle,
+body.dark .inspiration-desc,
+body.dark .badge-desc,
+body.dark .transport-bar-label,
+body.dark p {
+  color: var(--text-muted);
+}
+
+/* Titres et textes forts */
+body.dark h1,
+body.dark h2,
+body.dark h3,
+body.dark h4,
+body.dark strong,
+body.dark .hero-title,
+body.dark .inspiration-card-body h3 {
+  color: var(--text);
+}
+
+/* Navbar */
+body.dark .navbar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+body.dark .navItem {
+  color: var(--text-muted);
+}
+
+body.dark .navItem:hover,
+body.dark .navItem.active {
+  color: var(--accent);
+}
+
+/* Carousel */
+body.dark .carousel {
+  background: var(--bg-section);
+}
+
+/* Footer */
+body.dark .index-footer {
+  background: var(--bg-section);
+  color: var(--text-muted);
+}
+
+/* Alert prix */
+body.dark .alert-prix-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Tags inspiration */
+body.dark .tag-btn {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.dark .tag-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* Modale */
+body.dark .modal-content {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+body.dark .form-group input {
+  background: var(--bg-section);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 code {

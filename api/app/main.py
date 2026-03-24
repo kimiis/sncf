@@ -9,12 +9,181 @@ from math import radians, sin, cos, sqrt, atan2
 import os
 import time
 import random
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 app = FastAPI()
 
 # Cache simple pour éviter les requêtes Overpass répétées (rate limiting 429)
 overpass_cache = {}
 CACHE_DURATION = 300  # 5 minutes
+
+# OpenTripMap
+OPENTRIPMAP_API_KEY = os.getenv("OPENTRIPMAP_API_KEY", "")
+OPENTRIPMAP_BASE = "https://api.opentripmap.com/0.1/fr"
+destinations_cache = {"data": None, "time": 0}
+DESTINATIONS_CACHE_TTL = 3600  # 1h
+
+# Coordonnées et tags définis statiquement — fiables et sans dépendance externe
+FRENCH_CITIES = [
+    {"name": "Annecy",      "region": "Auvergne-Rhône-Alpes",       "lat": 45.8992, "lon":  6.1294, "tags": ["montagne", "nature"]},
+    {"name": "Nice",        "region": "Provence-Alpes-Côte d'Azur", "lat": 43.7102, "lon":  7.2620, "tags": ["mer", "culture"]},
+    {"name": "Bordeaux",    "region": "Nouvelle-Aquitaine",          "lat": 44.8378, "lon": -0.5792, "tags": ["gastronomie", "culture"]},
+    {"name": "Lyon",        "region": "Auvergne-Rhône-Alpes",       "lat": 45.7640, "lon":  4.8357, "tags": ["gastronomie", "culture"]},
+    {"name": "Strasbourg",  "region": "Grand Est",                   "lat": 48.5734, "lon":  7.7521, "tags": ["culture"]},
+    {"name": "La Rochelle", "region": "Nouvelle-Aquitaine",          "lat": 46.1591, "lon": -1.1520, "tags": ["mer", "culture"]},
+    {"name": "Marseille",   "region": "Provence-Alpes-Côte d'Azur", "lat": 43.2965, "lon":  5.3698, "tags": ["mer", "nature"]},
+    {"name": "Biarritz",    "region": "Nouvelle-Aquitaine",          "lat": 43.4832, "lon": -1.5586, "tags": ["mer", "nature"]},
+    {"name": "Montpellier", "region": "Occitanie",                   "lat": 43.6108, "lon":  3.8767, "tags": ["mer", "culture"]},
+    {"name": "Colmar",      "region": "Grand Est",                   "lat": 48.0793, "lon":  7.3585, "tags": ["culture", "gastronomie"]},
+    {"name": "Nantes",      "region": "Pays de la Loire",            "lat": 47.2184, "lon": -1.5536, "tags": ["culture"]},
+    {"name": "Rennes",      "region": "Bretagne",                    "lat": 48.1147, "lon": -1.6794, "tags": ["culture", "gastronomie"]},
+    {"name": "Avignon",     "region": "Provence-Alpes-Côte d'Azur", "lat": 43.9493, "lon":  4.8055, "tags": ["culture"]},
+    {"name": "Grenoble",    "region": "Auvergne-Rhône-Alpes",       "lat": 45.1885, "lon":  5.7245, "tags": ["montagne", "nature"]},
+    {"name": "Tours",       "region": "Centre-Val de Loire",         "lat": 47.3941, "lon":  0.6848, "tags": ["culture"]},
+    {"name": "Toulouse",    "region": "Occitanie",                   "lat": 43.6047, "lon":  1.4442, "tags": ["culture", "gastronomie"]},
+    {"name": "Saint-Malo",  "region": "Bretagne",                    "lat": 48.6493, "lon": -2.0256, "tags": ["mer", "culture"]},
+    {"name": "Cannes",      "region": "Provence-Alpes-Côte d'Azur", "lat": 43.5528, "lon":  7.0174, "tags": ["mer", "culture"]},
+    {"name": "Chamonix",    "region": "Auvergne-Rhône-Alpes",       "lat": 45.9237, "lon":  6.8694, "tags": ["montagne", "nature"]},
+    {"name": "Bayonne",     "region": "Nouvelle-Aquitaine",          "lat": 43.4929, "lon": -1.4748, "tags": ["mer", "gastronomie"]},
+]
+
+KINDS_TAGS = {
+    "mer":         ["beach", "sea", "marine", "coast", "harbour"],
+    "montagne":    ["mountain", "ski", "alpine", "peak", "highland"],
+    "nature":      ["natural", "park", "nature", "forest", "waterfall", "garden", "botanical", "lake"],
+    "culture":     ["museum", "cultural", "historic", "architecture", "gallery", "theatre", "heritage", "castle", "ruins"],
+    "gastronomie": ["food", "restaurant", "gastro", "wine", "cuisine", "market"],
+}
+
+
+def otm_kinds_to_tags(kinds_str):
+    tags = set()
+    kinds = kinds_str.lower() if kinds_str else ""
+    for tag, keywords in KINDS_TAGS.items():
+        if any(k in kinds for k in keywords):
+            tags.add(tag)
+    return list(tags) if tags else ["culture"]
+
+
+def get_wikipedia_image(city_name):
+    """
+    Récupère l'image principale d'une ville via l'API REST Wikimedia.
+    Essaie Wikipedia EN (meilleures photos), puis FR en fallback.
+    """
+    # Noms alternatifs anglais pour certaines villes françaises
+    en_names = {
+        "La Rochelle": "La_Rochelle",
+        "Saint-Malo": "Saint-Malo",
+        "Avignon": "Avignon",
+    }
+    en_name = en_names.get(city_name, city_name).replace(" ", "_")
+
+    for lang in ("en", "fr"):
+        name = en_name if lang == "en" else city_name.replace(" ", "_")
+        try:
+            resp = requests.get(
+                f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(name)}",
+                headers={"User-Agent": "GoEco-TrainApp/1.0"},
+                timeout=6,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                # Préférer originalimage (haute résolution) puis thumbnail
+                src = (
+                    data.get("originalimage", {}).get("source")
+                    or data.get("thumbnail", {}).get("source")
+                )
+                if src:
+                    print(f"[WIKI] {city_name} image trouvée ({lang})")
+                    return src
+        except Exception:
+            pass
+    print(f"[WIKI] {city_name} aucune image trouvée")
+    return None
+
+
+def get_wikipedia_description(city_name):
+    """Récupère la première phrase de l'intro Wikipedia d'une ville."""
+    try:
+        resp = requests.get(
+            "https://fr.wikipedia.org/w/api.php",
+            params={
+                "action": "query",
+                "titles": city_name,
+                "prop": "extracts",
+                "exintro": True,
+                "explaintext": True,
+                "exsentences": 1,
+                "format": "json",
+                "redirects": 1,
+            },
+            timeout=5,
+        )
+        pages = resp.json().get("query", {}).get("pages", {})
+        for page in pages.values():
+            extract = page.get("extract", "").strip()
+            if extract and len(extract) > 20:
+                # Couper à 80 caractères max pour la carte
+                return extract[:80].rsplit(" ", 1)[0] + "…" if len(extract) > 80 else extract
+    except Exception:
+        pass
+    return None
+
+
+def fetch_city_destination(idx, city):
+    """Récupère image Wikipedia + top lieux OTM pour une ville. Coords et tags sont statiques."""
+    city_name = city["name"]
+    region = city.get("region", "")
+    lat = city["lat"]
+    lon = city["lon"]
+    tags = city["tags"]
+    try:
+        time.sleep(0.4)
+
+        # 1. Lieux emblématiques via OpenTripMap (coords statiques, pas de geoname)
+        places = []
+        if OPENTRIPMAP_API_KEY:
+            places_resp = requests.get(
+                f"{OPENTRIPMAP_BASE}/places/radius",
+                params={
+                    "radius": 10000,
+                    "lon": lon,
+                    "lat": lat,
+                    "kinds": "interesting_places",
+                    "format": "json",
+                    "limit": 8,
+                    "apikey": OPENTRIPMAP_API_KEY,
+                },
+                timeout=8,
+            )
+            if places_resp.status_code == 200:
+                data = places_resp.json()
+                places = data if isinstance(data, list) else []
+
+        # 2. Description : top lieux OTM ou Wikipedia en fallback
+        top_names = [p["name"] for p in places if p.get("name") and p["name"].strip()][:2]
+        if top_names:
+            description = f"Découvrez {' et '.join(top_names)}"
+        else:
+            description = get_wikipedia_description(city_name) or f"Escapade à {city_name} en train"
+
+        # 3. Image Wikipedia
+        image = get_wikipedia_image(city_name)
+        print(f"[DEST] {city_name} OK — tags={tags}, image={'oui' if image else 'non'}")
+
+        return {
+            "id": idx + 1,
+            "name": city_name,
+            "description": description,
+            "region": region,
+            "image": image,
+            "tags": tags,
+        }
+    except Exception as e:
+        print(f"[DEST] Erreur {city_name}: {e}")
+        return None
 
 # CORS
 app.add_middleware(
@@ -46,19 +215,19 @@ df_tarif.dropna(
     ],
     inplace=True,
 )
-print(f"[STARTUP] tarifs: {df_tarif.shape}")
+# print(f"[STARTUP] tarifs: {df_tarif.shape}")
 
-print(f"[STARTUP] Chargement de {co2_file}...")
+# print(f"[STARTUP] Chargement de {co2_file}...")
 df_co2 = pd.read_excel(co2_file)
 df_co2.dropna(subset=["Origine_uic", "Destination_uic"], inplace=True)
-print(f"[STARTUP] co2: {df_co2.shape}")
-
-print(f"[STARTUP] Chargement de {gares_file}...")
+# print(f"[STARTUP] co2: {df_co2.shape}")
+#
+# print(f"[STARTUP] Chargement de {gares_file}...")
 df_gares = pd.read_excel(gares_file)
-print(f"[STARTUP] gares: {df_gares.shape}")
+# print(f"[STARTUP] gares: {df_gares.shape}")
 
 # Auth API SNCF
-api_key = "2d5f9bc9-9eb2-471b-bba8-24d542cf79ae"
+api_key = os.getenv("SNCF_API_KEY", "2d5f9bc9-9eb2-471b-bba8-24d542cf79ae")
 token = base64.b64encode(f"{api_key}:".encode()).decode()
 headers = {"Authorization": f"Basic {token}"}
 
@@ -86,7 +255,7 @@ def overpass_query_cached(query: str, cache_key: str, timeout: int = 30):
         overpass_cache[cache_key] = (data, now)
         return data
     except Exception as e:
-        print(f"[ERROR] Erreur Overpass: {e}")
+        # print(f"[ERROR] Erreur Overpass: {e}")
         # Retourner le cache expiré si disponible
         if cache_key in overpass_cache:
             print(f"[CACHE] Utilisation du cache expiré pour {cache_key}")
@@ -100,18 +269,38 @@ def get_gares():
     return {"gares": gares}
 
 
+@app.get("/gare-proche")
+def gare_proche(lat: float = Query(...), lon: float = Query(...)):
+    """Retourne la gare la plus proche des coordonnées GPS données."""
+    best_name = None
+    best_dist = float("inf")
+    for _, row in df_gares.dropna(subset=["LIBELLE", "Geo Point"]).iterrows():
+        geo = row["Geo Point"]
+        if not isinstance(geo, str) or "," not in geo:
+            continue
+        try:
+            g_lat, g_lon = [float(x.strip()) for x in geo.split(",")]
+            d = distance_haversine(lat, lon, g_lat, g_lon)
+            if d < best_dist:
+                best_dist = d
+                best_name = row["LIBELLE"]
+        except Exception:
+            continue
+    return {"gare": best_name, "distance_km": round(best_dist, 1)}
+
+
 @app.get("/autocomplete")
 def autocomplete(q: str = ""):
-    print(f"[DEBUG] autocomplete appelé avec q={q}")
-    print(f"[DEBUG] df_gares shape: {df_gares.shape}")
+    # print(f"[DEBUG] autocomplete appelé avec q={q}")
+    # print(f"[DEBUG] df_gares shape: {df_gares.shape}")
     q_lower = q.lower()
-    print(f"[DEBUG] Recherche en cours...")
+    # print(f"[DEBUG] Recherche en cours...")
     resultats = [
         gare
         for gare in df_gares["LIBELLE"].dropna().unique()
         if q_lower in gare.lower()
     ]
-    print(f"[DEBUG] {len(resultats)} résultats trouvés")
+    # print(f"[DEBUG] {len(resultats)} résultats trouvés")
     return resultats[:10]
 
 
@@ -172,12 +361,25 @@ def root():
 
 
 def get_code_uic(station_name: str):
-    serie = df_gares.loc[
-        df_gares["LIBELLE"].str.lower() == station_name.lower(), "CODE_UIC"
-    ]
-    if len(serie) == 0:
-        return None
-    return int(serie.values[0])
+    name_lower = station_name.lower().strip()
+    libelles = df_gares["LIBELLE"].str.lower()
+
+    # 1. Match exact
+    serie = df_gares.loc[libelles == name_lower, "CODE_UIC"]
+    if len(serie) > 0:
+        return int(serie.values[0])
+
+    # 2. La gare commence par le nom saisi (ex: "Toulouse" → "Toulouse-Matabiau")
+    serie = df_gares.loc[libelles.str.startswith(name_lower), "CODE_UIC"]
+    if len(serie) > 0:
+        return int(serie.values[0])
+
+    # 3. Contient le nom saisi
+    serie = df_gares.loc[libelles.str.contains(name_lower, na=False), "CODE_UIC"]
+    if len(serie) > 0:
+        return int(serie.values[0])
+
+    return None
 
 
 def get_coords(code_uic: int):
@@ -212,12 +414,18 @@ def estime_co2_voiture(distance_km: float):
     return 0.122 * distance_km
 
 
+def estime_co2_avion(distance_km: float):
+    # 0.255 kg CO2/km par passager (ADEME) — seulement pertinent > 300 km
+    return 0.255 * distance_km
+
+
 def get_full_journey(from_code: int, to_code: int):
     now = datetime.now().strftime("%Y%m%dT%H%M%S")
     params = {
         "from": f"stop_area:SNCF:{from_code}",
         "to": f"stop_area:SNCF:{to_code}",
         "datetime": now,
+        "count": 5,
     }
     response = requests.get(
         "https://api.sncf.com/v1/coverage/sncf/journeys",
@@ -225,12 +433,29 @@ def get_full_journey(from_code: int, to_code: int):
         headers=headers,
     )
     if response.status_code != 200:
-        return None
+        return None, []
     data = response.json()
     journeys = data.get("journeys", [])
     if not journeys:
-        return None
-    return journeys[0]
+        return None, []
+    return journeys[0], journeys[:3]
+
+
+def format_journey_summary(journey: dict) -> dict:
+    """Résumé d'un journey pour l'affichage multi-trajets."""
+    if not journey:
+        return {}
+    total_duration = journey.get("duration", 0)
+    dep = journey.get("departure_date_time", "")
+    arr = journey.get("arrival_date_time", "")
+    hours = total_duration // 3600
+    minutes = (total_duration % 3600) // 60
+    return {
+        "duree": f"{hours}h{minutes:02d}mn",
+        "depart": dep[9:13] if len(dep) >= 13 else "",
+        "arrivee": arr[9:13] if len(arr) >= 13 else "",
+        "nb_changements": sum(1 for s in journey.get("sections", []) if s.get("type") == "transfer"),
+    }
 
 
 def extract_route_coordinates(journey):
@@ -259,18 +484,18 @@ def extract_route_coordinates(journey):
 def get_hotels_near(
         lat_gare: float,
         lon_gare: float,
-        radius_m: int = 1200,
-        limit: int = 10,
+        radius_m: int = 1500,
+        limit: int = 20,
 ):
     """
-    Retourne une liste d'hôtels OSM proches.
+    Retourne une liste d'hébergements OSM proches (hôtels, auberges, B&B, etc.).
     [{name, lat, lon, distance_km_from_station}, ...]
     """
     query = f"""
     [out:json][timeout:25];
     (
-      node["tourism"="hotel"](around:{radius_m},{lat_gare},{lon_gare});
-      way["tourism"="hotel"](around:{radius_m},{lat_gare},{lon_gare});
+      node["tourism"~"^(hotel|hostel|motel|guest_house|bed_and_breakfast)$"](around:{radius_m},{lat_gare},{lon_gare});
+      way["tourism"~"^(hotel|hostel|motel|guest_house|bed_and_breakfast)$"](around:{radius_m},{lat_gare},{lon_gare});
     );
     out center {limit};
     """
@@ -280,13 +505,8 @@ def get_hotels_near(
     hotels = []
     for el in data.get("elements", []):
         tags = el.get("tags", {})
-        name = tags.get("name")
-        if not name:
-            # si tu préfères afficher quand même:
-            # name = "Hôtel"
-            continue
+        name = tags.get("name") or "Hôtel"
 
-        # Pour les ways, utiliser 'center', pour les nodes utiliser lat/lon directement
         if el.get("type") == "way":
             center = el.get("center", {})
             h_lat = center.get("lat")
@@ -312,18 +532,18 @@ def get_hotels_near(
 def get_bike_stations_near(
         lat_gare: float,
         lon_gare: float,
-        radius_m: int = 600,
+        radius_m: int = 1000,
         limit: int = 80,
 ):
     """
-    Retourne une liste de stations vélo en libre-service.
+    Retourne une liste de stations vélo (location et parking).
     [{name, lat, lon, distance_km_from_station, type}, ...]
     """
     query = f"""
     [out:json][timeout:25];
     (
-      node["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
-      way["amenity"="bicycle_rental"](around:{radius_m},{lat_gare},{lon_gare});
+      node["amenity"~"^(bicycle_rental|bicycle_parking)$"](around:{radius_m},{lat_gare},{lon_gare});
+      way["amenity"~"^(bicycle_rental|bicycle_parking)$"](around:{radius_m},{lat_gare},{lon_gare});
     );
     out center {limit};
     """
@@ -419,8 +639,7 @@ def get_activities_near(
     Activités OSM proches
     [{name, lat, lon, distance_km_from_station, category}, ...]
     """
-    print(f"[DEBUG] Recherche activites autour de ({lat_gare}, {lon_gare}) rayon={radius_m}m")
-
+    # print(f"[DEBUG] Recherche activites autour de ({lat_gare}, {lon_gare}) rayon={radius_m}m")
     query = f"""
     [out:json][timeout:25];
     (
@@ -436,7 +655,7 @@ def get_activities_near(
 
     cache_key = f"activities_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}_{limit}"
     data = overpass_query_cached(query, cache_key, timeout=25)
-    print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
+    # print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
 
     activities = []
     for el in data.get("elements", []):
@@ -479,6 +698,7 @@ def trajet(
         from_city: str = Query(..., description="Nom gare départ"),
         to_city: str = Query(..., description="Nom gare arrivée"),
 ):
+    """Retourne les infos du trajet (prix, CO2, durée, coords) sans appels Overpass."""
     from_code = None
     to_code = None
     prix_moyen = None
@@ -488,12 +708,7 @@ def trajet(
     journey = None
     lat_dep = lon_dep = lat_arr = lon_arr = None
     duree = None
-    hotels_proches = []
-    stations_velo_proches = []
-    activites_proches = []
-    parkings_proches = []
 
-    # Récup codes UIC
     try:
         from_code = get_code_uic(from_city)
     except Exception:
@@ -504,8 +719,9 @@ def trajet(
     except Exception:
         to_code = None
 
+    journeys_list = []
     if from_code and to_code:
-        # Prix moyen
+        # Prix moyen (indicatif — source SNCF Open Data)
         try:
             lignes = df_tarif[
                 (df_tarif["Gare origine - code UIC"] == from_code)
@@ -520,9 +736,9 @@ def trajet(
 
         # Journey API SNCF
         try:
-            journey = get_full_journey(from_code, to_code)
+            journey, journeys_list = get_full_journey(from_code, to_code)
         except Exception:
-            journey = None
+            journey, journeys_list = None, []
 
         # CO2 + distance
         try:
@@ -539,7 +755,6 @@ def trajet(
                 if pd.isnull(voiture_co2) and distance is not None:
                     voiture_co2 = estime_co2_voiture(distance)
             else:
-                # Estimation via Haversine
                 lat1, lon1 = get_coords(from_code)
                 lat2, lon2 = get_coords(to_code)
                 if None not in (lat1, lon1, lat2, lon2):
@@ -553,28 +768,8 @@ def trajet(
         try:
             lat_dep, lon_dep = get_coords(from_code)
             lat_arr, lon_arr = get_coords(to_code)
-            print(f"[DEBUG] Coordonnees arrivee: lat={lat_arr}, lon={lon_arr}")
-        except Exception as e:
-            print(f"[ERROR] Erreur get_coords: {e}")
+        except Exception:
             lat_dep = lon_dep = lat_arr = lon_arr = None
-
-        # Parkings proches de la gare de DÉPART
-        if lat_dep is not None and lon_dep is not None:
-            print(f"[DEBUG] Recherche parkings autour de la gare de depart...")
-            parkings_proches = get_parkings_near(lat_dep, lon_dep, radius_m=800)
-            print(f"[DEBUG] {len(parkings_proches)} parkings trouves")
-        else:
-            print(f"[WARNING] Coordonnees depart non trouvees, pas de recherche parkings")
-
-        # Hôtels / vélos / activités proches de la gare d'ARRIVÉE
-        if lat_arr is not None and lon_arr is not None:
-            print(f"[DEBUG] Recherche POI autour de la gare d'arrivee...")
-            hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1200)
-            stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=800)
-            activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=1200)
-            print(f"[DEBUG] Resultats: {len(hotels_proches)} hotels, {len(stations_velo_proches)} velos, {len(activites_proches)} activites")
-        else:
-            print(f"[WARNING] Coordonnees arrivee non trouvees, pas de recherche POI")
 
     # Durée formatée
     if journey:
@@ -583,124 +778,105 @@ def trajet(
         minutes = (total_duration % 3600) // 60
         duree = f"{hours}h{minutes}mn"
 
-    # Arrondi de la distance
     if distance is not None:
         distance = round(float(distance), 2)
 
-    # Extraire les coordonnées GPS du tracé réel du train
+    avion_co2 = round(estime_co2_avion(distance), 2) if distance and distance > 300 else None
     route_coordinates = extract_route_coordinates(journey)
-    print(f"[DEBUG] {len(route_coordinates)} coordonnées extraites pour le tracé du train")
+    prochains_departs = [format_journey_summary(j) for j in journeys_list]
 
     return {
         "from_city": from_city,
         "to_city": to_city,
         "distance_km": distance,
         "duree": duree,
-        "prix_moyen": prix_moyen,
+        "prix_indicatif": prix_moyen,
         "co2_train_kg": train_co2,
         "co2_voiture_kg": voiture_co2,
+        "co2_avion_kg": avion_co2,
         "coordonnees_depart": {"latitude": lat_dep, "longitude": lon_dep},
         "coordonnees_arrivee": {"latitude": lat_arr, "longitude": lon_arr},
         "route_coordinates": route_coordinates,
+        "prochains_departs": prochains_departs,
+        "trajet_api_sncf_detail": journey,
+    }
+
+
+@app.get("/trajet/poi")
+def trajet_poi(
+        lat_arr: float = Query(..., description="Latitude gare arrivée"),
+        lon_arr: float = Query(..., description="Longitude gare arrivée"),
+        lat_dep: float = Query(..., description="Latitude gare départ"),
+        lon_dep: float = Query(..., description="Longitude gare départ"),
+):
+    """Retourne les POI proches des gares (appels Overpass, peut être lent)."""
+    hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1200)
+    stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=800)
+    activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=1200)
+    parkings_proches = get_parkings_near(lat_dep, lon_dep, radius_m=800)
+
+    return {
         "hotels_proches": hotels_proches,
         "stations_velo_proches": stations_velo_proches,
         "activites_proches": activites_proches,
         "parkings_proches": parkings_proches,
-        "trajet_api_sncf_detail": journey,
     }
+
+
+def _static_destinations():
+    """Liste statique avec images Wikipedia — fallback si pas de clé OpenTripMap."""
+    result = []
+    for idx, city in enumerate(FRENCH_CITIES):
+        image = get_wikipedia_image(city["name"])
+        desc = get_wikipedia_description(city["name"]) or f"Escapade à {city['name']} en train"
+        result.append({
+            "id": idx + 1,
+            "name": city["name"],
+            "description": desc,
+            "region": city["region"],
+            "image": image,
+            "tags": city["tags"],
+        })
+        time.sleep(0.2)
+    shuffled = result.copy()
+    random.shuffle(shuffled)
+    return shuffled
 
 
 @app.get("/sncf/destinations")
 def get_destinations():
     """
-    Retourne une liste de destinations coup de cœur en France
-    avec des photos et descriptions
+    Retourne des destinations en France via OpenTripMap + images Wikipedia.
+    Cache 1h. Fallback sur liste statique si pas de clé API.
     """
-    destinations = [
-        {
-            "id": 1,
-            "name": "Annecy",
-            "description": "Cap sur Annecy entre lac et montagnes",
-            "region": "Auvergne-Rhône-Alpes",
-            "image": "https://images.unsplash.com/photo-1564680219020-5bfe5ebc3807?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["lac", "montagne", "nature"]
-        },
-        {
-            "id": 2,
-            "name": "Nice",
-            "description": "La Côte d'Azur sans voiture",
-            "region": "Provence-Alpes-Côte d'Azur",
-            "image": "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["mer", "plage", "soleil"]
-        },
-        {
-            "id": 3,
-            "name": "Bordeaux",
-            "description": "Capitale mondiale du vin",
-            "region": "Nouvelle-Aquitaine",
-            "image": "https://images.unsplash.com/photo-1523906630133-f6934a1ab2b9?w=800&q=80",
-            "tags": ["vin", "gastronomie", "culture"]
-        },
-        {
-            "id": 4,
-            "name": "Lyon",
-            "description": "Entre gastronomie et patrimoine UNESCO",
-            "region": "Auvergne-Rhône-Alpes",
-            "image": "https://plus.unsplash.com/premium_photo-1742418148669-85fde84c4431?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["gastronomie", "culture", "histoire"]
-        },
-        {
-            "id": 5,
-            "name": "Strasbourg",
-            "description": "La capitale de Noël et de l'Europe",
-            "region": "Grand Est",
-            "image": "https://plus.unsplash.com/premium_photo-1734414857169-432aa294f3c5?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["culture", "architecture", "histoire"]
-        },
-        {
-            "id": 6,
-            "name": "La Rochelle",
-            "description": "Charme atlantique et vieux port",
-            "region": "Nouvelle-Aquitaine",
-            "image": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80",
-            "tags": ["mer", "port", "histoire"]
-        },
-        {
-            "id": 7,
-            "name": "Marseille",
-            "description": "Soleil, calanques et Méditerranée",
-            "region": "Provence-Alpes-Côte d'Azur",
-            "image": "https://images.unsplash.com/photo-1576244348464-c7d393b6dfc0?q=80&w=1193&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["mer", "nature", "culture"]
-        },
-        {
-            "id": 8,
-            "name": "Biarritz",
-            "description": "Surf et élégance au Pays Basque",
-            "region": "Nouvelle-Aquitaine",
-            "image": "https://images.unsplash.com/photo-1627076371043-6ae4375463b9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["surf", "plage", "océan"]
-        },
-        {
-            "id": 9,
-            "name": "Montpellier",
-            "description": "Ville étudiante et méditerranéenne",
-            "region": "Occitanie",
-            "image": "https://images.unsplash.com/photo-1590932303346-f20e0c1e7a96?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["soleil", "jeunesse", "culture"]
-        },
-        {
-            "id": 10,
-            "name": "Colmar",
-            "description": "Petite Venise alsacienne",
-            "region": "Grand Est",
-            "image": "https://images.unsplash.com/photo-1598710859838-d6b630235c56?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "tags": ["architecture", "charme", "vin"]
-        }
-    ]
+    now = time.time()
 
-    # Retourner des destinations aléatoires (mélanger la liste)
-    shuffled = destinations.copy()
+    # Servir depuis le cache si encore valide
+    if destinations_cache["data"] and (now - destinations_cache["time"]) < DESTINATIONS_CACHE_TTL:
+        shuffled = destinations_cache["data"].copy()
+        random.shuffle(shuffled)
+        return shuffled
+
+    # Sans clé OpenTripMap : fallback statique (images Wikipedia quand même)
+    if not OPENTRIPMAP_API_KEY:
+        print("[OTM] Pas de clé API, utilisation de la liste statique")
+        return _static_destinations()
+
+    # Appels OpenTripMap
+    result = []
+    for idx, city in enumerate(FRENCH_CITIES):
+        dest = fetch_city_destination(idx, city)
+        if dest:
+            result.append(dest)
+
+    # Si trop peu de résultats, fallback
+    if len(result) < 5:
+        print("[OTM] Trop peu de résultats, fallback statique")
+        return _static_destinations()
+
+    destinations_cache["data"] = result
+    destinations_cache["time"] = now
+
+    shuffled = result.copy()
     random.shuffle(shuffled)
-
     return shuffled

@@ -23,7 +23,7 @@
 }
 
 .auth-btn {
-    background: #f67c7c;
+    background: #A6706A;
     color: white;
     padding: 0.8em;
     border: none;
@@ -39,12 +39,12 @@
 .switch-mode button {
     background: none;
     border: none;
-    color: #f67c7c;
+    color: #A6706A;
     cursor: pointer;
     font-weight: bold;
 }
 .auth-modal {
-    background: #506261;
+    background: #2D5443;
     color: #fff;
     padding: 2em 2em 3em;
     border-radius: 24px;
@@ -69,7 +69,7 @@
     left: 0;
     width: 100%;
     height: 40%;
-    background: linear-gradient(to top, #506261 10%, transparent 80%);
+    background: linear-gradient(to top, #2D5443 10%, transparent 80%);
     pointer-events: none;
 }
 
@@ -80,7 +80,7 @@
 
 /* Bouton & liens */
 .auth-btn {
-    background: #f57c7c;
+    background: #A6706A;
     color: #fff;
     padding: 0.8em;
     border: none;
@@ -92,7 +92,7 @@
 }
 
 .auth-btn:hover {
-    background: #fa8d8d;
+    background: #BF8680;
 }
 
 .switch-mode {
@@ -103,12 +103,12 @@
 .switch-link {
     background: none;
     border: none;
-    color: #f57c7c;
+    color: #A6706A;
     font-weight: bold;
     cursor: pointer;
     transition: color 0.2s ease;
 }
 
 .switch-link:hover {
-    color: #fa8d8d;
+    color: #BF8680;
 }

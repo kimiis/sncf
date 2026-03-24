@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaHome, FaUser, FaSignOutAlt, FaSignInAlt } from "react-icons/fa";
+import { FaHome, FaUser, FaSignOutAlt, FaSignInAlt, FaCompass } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import AuthModal from "./AuthModal";
 import "../styles/navBar.css";
-import logoSansTrain from "../assets/logo_sans_train-removebg-preview.png";
+import railgoLogo from "../assets/railgo_logo.svg";
 
 const NavBar = () => {
     const navigate = useNavigate();
@@ -32,8 +32,8 @@ const NavBar = () => {
                 {/* === LOGO À GAUCHE === */}
                 <div className="navbar-left" onClick={() => navigate("/index")}>
                     <img
-                        src={logoSansTrain}
-                        alt="Logo GoÉco"
+                        src={railgoLogo}
+                        alt="Logo RailGo"
                         className="navbar-logo"
                     />
                 </div>
@@ -46,6 +46,13 @@ const NavBar = () => {
                         aria-label="Accueil"
                     >
                         <FaHome className="icon"/>
+                    </button>
+                    <button
+                        onClick={() => navigate("/inspiration")}
+                        className={`navItem ${location.pathname === "/inspiration" ? "active" : ""}`}
+                        aria-label="Inspiration"
+                    >
+                        <FaCompass className="icon"/>
                     </button>
 
                     {!token ? (
@@ -77,7 +84,7 @@ const NavBar = () => {
                     )}
                 </div>
                 <p className="nav-slogan">
-                    Explore la France autrement, plus vert, plus responsable.
+                    Voyage en train, voyage responsable.
                 </p>
             </nav>
 

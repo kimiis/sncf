@@ -1,22 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { FaUser, FaHeart, FaHistory, FaMoon, FaSun, FaSignOutAlt, FaTrain, FaMapMarkerAlt, FaClock, FaLeaf } from "react-icons/fa";
+import { useTheme } from "../context/ThemeContext";
+import { FaUser, FaHeart, FaHistory, FaMoon, FaSun, FaSignOutAlt, FaTrain, FaMapMarkerAlt, FaClock, FaLeaf, FaEdit, FaTimes, FaTrophy, FaMedal } from "react-icons/fa";
 import api from "../api/axios";
 import "../styles/profil.css";
 
 function Profil() {
     const navigate = useNavigate();
     const { isAuthenticated, id } = useAuth();
+    const { darkMode, toggleDarkMode } = useTheme();
     const [userData, setUserData] = useState(null);
     const [activeTab, setActiveTab] = useState("info");
-    const [darkMode, setDarkMode] = useState(() => {
-        return localStorage.getItem("darkMode") === "true";
-    });
+    const [editOpen, setEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [editLoading, setEditLoading] = useState(false);
 
-    // Récupérer l'historique et les favoris depuis localStorage
     const [historique, setHistorique] = useState([]);
+    const [historiqueComplet, setHistoriqueComplet] = useState([]);
     const [favoris, setFavoris] = useState([]);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [defiProgress, setDefiProgress] = useState(0);
+    const DEFI_OBJECTIF = 50; // kg CO2 à économiser cette semaine
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -36,29 +41,120 @@ function Profil() {
 
         fetchUserData();
 
-        // Récupérer l'historique depuis localStorage
-        const loadedHistorique = JSON.parse(localStorage.getItem('trajetHistorique') || '[]');
-        setHistorique(loadedHistorique.slice(0, 5)); // Garder les 5 derniers
+        // Historique depuis BDD, fallback localStorage
+        const fetchHistory = async () => {
+            try {
+                const { data } = await api.get("/trajet/history");
+                const mapped = data.map((h) => {
+                    let extra = {};
+                    try { extra = JSON.parse(h.type_train || "{}"); } catch {}
+                    return {
+                        id: h.search_history_id,
+                        from: h.gare_depart,
+                        to: h.gare_arrivee,
+                        date: h.created_at,
+                        duration: extra.duree || "N/A",
+                        co2Saved: extra.co2_economise || "N/A",
+                        price: extra.prix || "N/A",
+                    };
+                });
+                setHistoriqueComplet(mapped);
+                setHistorique(mapped.slice(0, 5));
+            } catch {
+                const local = JSON.parse(localStorage.getItem("trajetHistorique") || "[]");
+                setHistoriqueComplet(local);
+                setHistorique(local.slice(0, 5));
+            }
+        };
 
-        // Récupérer les favoris depuis localStorage
-        const loadedFavoris = JSON.parse(localStorage.getItem('trajetFavoris') || '[]');
-        setFavoris(loadedFavoris);
+        // Favoris depuis BDD, fallback localStorage
+        const fetchFavorites = async () => {
+            try {
+                const { data } = await api.get("/trajet/favorites");
+                setFavoris(data.map((f) => ({
+                    id: f.favorites_itinary_id,
+                    from: f.gare_depart,
+                    to: f.gare_arrivee,
+                    date: f.created_at,
+                })));
+            } catch {
+                const local = JSON.parse(localStorage.getItem("trajetFavoris") || "[]");
+                setFavoris(local);
+            }
+        };
+
+        fetchHistory();
+        fetchFavorites();
+
+        // Leaderboard
+        api.get("/stats/leaderboard").then(({ data }) => setLeaderboard(data)).catch(() => {});
     }, [isAuthenticated, navigate, id]);
+
+    // Calcul défi hebdo (trajets de la semaine courante)
+    useEffect(() => {
+        if (!historiqueComplet.length) return;
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const weekly = historiqueComplet.filter((h) => new Date(h.date) > oneWeekAgo);
+        const weekCo2 = weekly.reduce((t, h) => t + (parseFloat(h.co2Saved) || 0), 0);
+        setDefiProgress(Math.min(weekCo2, DEFI_OBJECTIF));
+    }, [historiqueComplet]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
         navigate("/");
     };
 
-    const toggleDarkMode = () => {
-        const newMode = !darkMode;
-        setDarkMode(newMode);
-        localStorage.setItem("darkMode", newMode);
+    const openEdit = () => {
+        setEditForm({
+            first_name: userData.first_name || "",
+            last_name: userData.last_name || "",
+            phone: userData.phone || "",
+            address: userData.address || "",
+            postal_code: userData.postal_code || "",
+            city: userData.city || "",
+        });
+        setEditOpen(true);
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setEditLoading(true);
+        try {
+            const { data } = await api.patch(`/users/user/${id}`, editForm);
+            setUserData((prev) => ({ ...prev, ...data }));
+            setEditOpen(false);
+        } catch (err) {
+            console.error("Erreur modification profil:", err);
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    const handleRemoveFavori = async (favId) => {
+        try {
+            await api.delete(`/trajet/favorites/${favId}`);
+            setFavoris((prev) => prev.filter((f) => f.id !== favId));
+        } catch {
+            setFavoris((prev) => prev.filter((f) => f.id !== favId));
+        }
     };
 
     if (!userData) {
         return <div className="profil-loading">Chargement du profil...</div>;
     }
+
+    const totalCo2 = historiqueComplet.reduce((t, h) => t + (parseFloat(h.co2Saved) || 0), 0);
+    const nbTrajets = historiqueComplet.length;
+
+    const BADGES = [
+        { id: "first", icon: "🌱", label: "Première graine", desc: "1er trajet recherché", unlocked: nbTrajets >= 1 },
+        { id: "eco5", icon: "🌿", label: "Éco-voyageur", desc: "5 trajets recherchés", unlocked: nbTrajets >= 5 },
+        { id: "co2_50", icon: "🌳", label: "Champion vert", desc: "50 kg CO₂ économisés", unlocked: totalCo2 >= 50 },
+        { id: "co2_100", icon: "🏆", label: "Ambassadeur", desc: "100 kg CO₂ économisés", unlocked: totalCo2 >= 100 },
+        { id: "traj10", icon: "🚂", label: "Grand voyageur", desc: "10 trajets recherchés", unlocked: nbTrajets >= 10 },
+        { id: "traj20", icon: "⭐", label: "Explorateur", desc: "20 trajets recherchés", unlocked: nbTrajets >= 20 },
+    ];
 
     return (
         <div className={`profil-page ${darkMode ? "dark" : ""}`}>
@@ -154,7 +250,9 @@ function Profil() {
                                 <p>{userData.city || "Non renseignée"}</p>
                             </div>
                         </div>
-                        <button className="edit-profile-btn">Modifier mon profil</button>
+                        <button className="edit-profile-btn" onClick={openEdit}>
+                            <FaEdit /> Modifier mon profil
+                        </button>
                     </div>
                 )}
 
@@ -177,9 +275,14 @@ function Profil() {
                                                 <p className="route-date">Ajouté le {new Date(trajet.date).toLocaleDateString('fr-FR')}</p>
                                             </div>
                                         </div>
-                                        <button className="rechercher-btn" onClick={() => navigate(`/search?from=${trajet.from}&to=${trajet.to}`)}>
-                                            Rechercher
-                                        </button>
+                                        <div style={{ display: "flex", gap: "8px" }}>
+                                            <button className="rechercher-btn" onClick={() => navigate(`/search?from=${trajet.from}&to=${trajet.to}`)}>
+                                                Rechercher
+                                            </button>
+                                            <button className="remove-favori-btn" onClick={() => handleRemoveFavori(trajet.id)} title="Supprimer">
+                                                <FaTimes />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -235,6 +338,49 @@ function Profil() {
                 )}
             </div>
 
+            {/* Modale modification profil */}
+            {editOpen && (
+                <div className="modal-overlay" onClick={() => setEditOpen(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Modifier mon profil</h3>
+                            <button className="modal-close" onClick={() => setEditOpen(false)}><FaTimes /></button>
+                        </div>
+                        <form className="edit-form" onSubmit={handleEditSubmit}>
+                            <div className="edit-form-grid">
+                                <div className="form-group">
+                                    <label>Prénom</label>
+                                    <input value={editForm.first_name} onChange={(e) => setEditForm(p => ({ ...p, first_name: e.target.value }))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Nom</label>
+                                    <input value={editForm.last_name} onChange={(e) => setEditForm(p => ({ ...p, last_name: e.target.value }))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Téléphone</label>
+                                    <input value={editForm.phone} onChange={(e) => setEditForm(p => ({ ...p, phone: e.target.value }))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Adresse</label>
+                                    <input value={editForm.address} onChange={(e) => setEditForm(p => ({ ...p, address: e.target.value }))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Code postal</label>
+                                    <input value={editForm.postal_code} onChange={(e) => setEditForm(p => ({ ...p, postal_code: e.target.value }))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Ville</label>
+                                    <input value={editForm.city} onChange={(e) => setEditForm(p => ({ ...p, city: e.target.value }))} />
+                                </div>
+                            </div>
+                            <button type="submit" className="edit-profile-btn" disabled={editLoading}>
+                                {editLoading ? "Enregistrement..." : "Enregistrer"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Stats rapides */}
             <section className="stats-section">
                 <h3 className="section-title">Mes statistiques</h3>
@@ -245,7 +391,7 @@ function Profil() {
                         </div>
                         <div className="stat-content">
                             <p className="stat-value">
-                                {historique.reduce((total, trajet) => {
+                                {historiqueComplet.reduce((total, trajet) => {
                                     const co2 = parseFloat(trajet.co2Saved) || 0;
                                     return total + co2;
                                 }, 0).toFixed(1)} kg
@@ -258,7 +404,7 @@ function Profil() {
                             <FaTrain />
                         </div>
                         <div className="stat-content">
-                            <p className="stat-value">{historique.length}</p>
+                            <p className="stat-value">{historiqueComplet.length}</p>
                             <p className="stat-label">Trajets recherchés</p>
                         </div>
                     </div>
@@ -269,8 +415,7 @@ function Profil() {
                         <div className="stat-content">
                             <p className="stat-value">
                                 {(() => {
-                                    const totalMinutes = historique.reduce((total, trajet) => {
-                                        // Parser "2h05" -> 125 minutes
+                                    const totalMinutes = historiqueComplet.reduce((total, trajet) => {
                                         const match = trajet.duration.match(/(\d+)h(\d+)/);
                                         if (match) {
                                             return total + parseInt(match[1]) * 60 + parseInt(match[2]);
@@ -287,6 +432,81 @@ function Profil() {
                     </div>
                 </div>
             </section>
+
+            {/* Badges */}
+            <section className="badges-section">
+                <h3 className="section-title">Mes badges</h3>
+                <div className="badges-grid">
+                    {BADGES.map((badge) => (
+                        <div key={badge.id} className={`badge-card ${badge.unlocked ? "unlocked" : "locked"}`}>
+                            <span className="badge-icon">{badge.icon}</span>
+                            <p className="badge-label">{badge.label}</p>
+                            <p className="badge-desc">{badge.desc}</p>
+                            {!badge.unlocked && <span className="badge-lock">🔒</span>}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Défi hebdomadaire */}
+            <section className="defi-section">
+                <h3 className="section-title">Défi de la semaine</h3>
+                <div className="defi-card">
+                    <p className="defi-title">Économise <strong>{DEFI_OBJECTIF} kg de CO₂</strong> cette semaine en prenant le train</p>
+                    <div className="defi-bar-track">
+                        <div
+                            className="defi-bar-fill"
+                            style={{ width: `${Math.min((defiProgress / DEFI_OBJECTIF) * 100, 100)}%` }}
+                        />
+                    </div>
+                    <p className="defi-progress">
+                        {defiProgress.toFixed(1)} / {DEFI_OBJECTIF} kg
+                        {defiProgress >= DEFI_OBJECTIF && " 🎉 Objectif atteint !"}
+                    </p>
+                </div>
+            </section>
+
+            {/* Dashboard CO2 mensuel */}
+            {historiqueComplet.length > 0 && (
+                <section className="co2-dashboard">
+                    <h3 className="section-title">Mon impact CO₂</h3>
+                    <div className="co2-impact-cards">
+                        <div className="co2-impact-card">
+                            <span className="co2-impact-icon">🌍</span>
+                            <span className="co2-impact-val">{totalCo2.toFixed(1)} kg</span>
+                            <span className="co2-impact-label">CO₂ économisé au total</span>
+                        </div>
+                        <div className="co2-impact-card">
+                            <span className="co2-impact-icon">🌳</span>
+                            <span className="co2-impact-val">{Math.round(totalCo2 / 21)}</span>
+                            <span className="co2-impact-label">arbres équivalents</span>
+                        </div>
+                        <div className="co2-impact-card">
+                            <span className="co2-impact-icon">🚗</span>
+                            <span className="co2-impact-val">{Math.round(totalCo2 / 0.122)} km</span>
+                            <span className="co2-impact-label">km de voiture évités</span>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* Leaderboard */}
+            {leaderboard.length > 0 && (
+                <section className="leaderboard-section">
+                    <h3 className="section-title"><FaTrophy /> Classement communauté</h3>
+                    <div className="leaderboard-list">
+                        {leaderboard.map((user) => (
+                            <div key={user.rank} className={`leaderboard-row ${user.rank <= 3 ? "top3" : ""}`}>
+                                <span className="lb-rank">
+                                    {user.rank === 1 ? "🥇" : user.rank === 2 ? "🥈" : user.rank === 3 ? "🥉" : `#${user.rank}`}
+                                </span>
+                                <span className="lb-name">{user.nom}</span>
+                                <span className="lb-co2">{user.co2_economise_kg} kg <FaLeaf className="leaf-icon" /></span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

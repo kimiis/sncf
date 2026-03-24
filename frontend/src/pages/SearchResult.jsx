@@ -15,6 +15,9 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import api from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
+import CO2Equivalences from "../components/CO2Equivalences";
+import WeatherWidget from "../components/WeatherWidget";
+import ShareButton from "../components/ShareButton";
 import "../styles/searchBar.css";
 import "../styles/searchResult.css";
 
@@ -87,10 +90,16 @@ export default function SearchResult() {
     const [params] = useSearchParams();
     const fromCity = params.get("from");
     const toCity = params.get("to");
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, id: userId } = useAuth();
 
+    const travelDate = params.get("date") || "";
     const [trajet, setTrajet] = useState(null);
+    const [poi, setPoi] = useState(null);
+    const [poiLoading, setPoiLoading] = useState(false);
     const [error, setError] = useState("");
+    const [activeJourneyIdx, setActiveJourneyIdx] = useState(0);
+    const [alertPrixOpen, setAlertPrixOpen] = useState(false);
+    const [alertPrixVal, setAlertPrixVal] = useState("");
 
     // Etats des filtres principaux
     const [showHotels, setShowHotels] = useState(false);
@@ -110,7 +119,7 @@ export default function SearchResult() {
     // Limite pour les utilisateurs non connectes
     const LIMIT_NON_CONNECTED = 10;
 
-    // Recuperation du trajet via l'API
+    // 1. Charger les infos du trajet (rapide, sans POI)
     useEffect(() => {
         const fetchTrajet = async () => {
             try {
@@ -119,33 +128,34 @@ export default function SearchResult() {
                 });
                 setTrajet(data);
 
-                // Sauvegarder le trajet dans l'historique (localStorage)
+                // Sauvegarder dans la BDD si connecté, sinon localStorage
                 if (data && isAuthenticated) {
                     const co2Saved = data.co2_voiture_kg && data.co2_train_kg
                         ? (data.co2_voiture_kg - data.co2_train_kg).toFixed(1)
                         : null;
-
-                    const trajetData = {
-                        id: Date.now(),
-                        from: fromCity,
-                        to: toCity,
-                        date: new Date().toISOString(),
-                        duration: data.duree || "N/A",
-                        co2Saved: co2Saved ? `${co2Saved} kg` : "N/A",
-                        price: data.prix_moyen ? `${Math.round(data.prix_moyen)}€` : "N/A"
-                    };
-
-                    // Récupérer l'historique existant
-                    const historique = JSON.parse(localStorage.getItem('trajetHistorique') || '[]');
-
-                    // Ajouter le nouveau trajet au début
-                    historique.unshift(trajetData);
-
-                    // Garder seulement les 10 derniers
-                    const updatedHistorique = historique.slice(0, 10);
-
-                    // Sauvegarder dans localStorage
-                    localStorage.setItem('trajetHistorique', JSON.stringify(updatedHistorique));
+                    try {
+                        await api.post("/trajet/history", {
+                            gare_depart: fromCity,
+                            gare_arrivee: toCity,
+                            duree: data.duree || "N/A",
+                            co2_economise: co2Saved ? `${co2Saved} kg` : "N/A",
+                            prix: data.prix_moyen ? `${Math.round(data.prix_moyen)}€` : "N/A",
+                        });
+                    } catch {
+                        // Fallback localStorage si BDD indisponible
+                        const trajetData = {
+                            id: Date.now(),
+                            from: fromCity,
+                            to: toCity,
+                            date: new Date().toISOString(),
+                            duration: data.duree || "N/A",
+                            co2Saved: co2Saved ? `${co2Saved} kg` : "N/A",
+                            price: data.prix_moyen ? `${Math.round(data.prix_moyen)}€` : "N/A",
+                        };
+                        const historique = JSON.parse(localStorage.getItem("trajetHistorique") || "[]");
+                        historique.unshift(trajetData);
+                        localStorage.setItem("trajetHistorique", JSON.stringify(historique.slice(0, 10)));
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -153,7 +163,50 @@ export default function SearchResult() {
             }
         };
         fetchTrajet();
-    }, [fromCity, toCity, isAuthenticated]);
+    }, [fromCity, toCity, isAuthenticated, userId]);
+
+    // 2. Charger les POI une fois les coordonnées disponibles
+    useEffect(() => {
+        if (!trajet) return;
+        const { coordonnees_depart: dep, coordonnees_arrivee: arr } = trajet;
+        if (!dep?.latitude || !arr?.latitude) return;
+
+        const fetchPoi = async () => {
+            setPoiLoading(true);
+            try {
+                const { data } = await api.get("/sncf/trajet/poi", {
+                    params: {
+                        lat_arr: arr.latitude,
+                        lon_arr: arr.longitude,
+                        lat_dep: dep.latitude,
+                        lon_dep: dep.longitude,
+                    },
+                });
+                setPoi(data);
+            } catch (err) {
+                console.error("Erreur POI:", err);
+            } finally {
+                setPoiLoading(false);
+            }
+        };
+        fetchPoi();
+    }, [trajet]);
+
+    const handleAlertPrix = async () => {
+        if (!alertPrixVal) return;
+        try {
+            await api.post("/stats/price-alert", {
+                gare_depart: fromCity,
+                gare_arrivee: toCity,
+                prix_max: parseFloat(alertPrixVal),
+            });
+            setAlertPrixOpen(false);
+            setAlertPrixVal("");
+            alert(`Alerte créée ! On vous préviendra si le prix indicatif passe sous ${alertPrixVal}€.`);
+        } catch {
+            alert("Connectez-vous pour créer une alerte prix.");
+        }
+    };
 
     // Toggle un sous-filtre d'activite
     const toggleActivityFilter = (category) => {
@@ -180,18 +233,13 @@ export default function SearchResult() {
     // Extraction des coordonnees
     const start = trajet.coordonnees_depart;
     const end = trajet.coordonnees_arrivee;
+    const hasCoords = !!(start?.latitude && end?.latitude);
 
-    // Verifier que les coordonnees existent
-    if (!start?.latitude || !end?.latitude) {
-        return <p className="error">Coordonnees de trajet non disponibles</p>;
-    }
-
-    const startPos = [start.latitude, start.longitude];
-    const endPos = [end.latitude, end.longitude];
-    const center = [
-        (startPos[0] + endPos[0]) / 2,
-        (startPos[1] + endPos[1]) / 2,
-    ];
+    const startPos = hasCoords ? [start.latitude, start.longitude] : null;
+    const endPos = hasCoords ? [end.latitude, end.longitude] : null;
+    const center = hasCoords
+        ? [(startPos[0] + endPos[0]) / 2, (startPos[1] + endPos[1]) / 2]
+        : [46.5, 2.5]; // centre de la France
 
     // Coordonnées du tracé réel du train (si disponibles)
     const routeCoords = trajet.route_coordinates || [];
@@ -199,20 +247,20 @@ export default function SearchResult() {
 
     // Donnees des POI avec limite selon connexion
     const hotels = isAuthenticated
-        ? trajet.hotels_proches || []
-        : (trajet.hotels_proches || []).slice(0, LIMIT_NON_CONNECTED);
+        ? poi?.hotels_proches || []
+        : (poi?.hotels_proches || []).slice(0, LIMIT_NON_CONNECTED);
 
     const bikes = isAuthenticated
-        ? trajet.stations_velo_proches || []
-        : (trajet.stations_velo_proches || []).slice(0, LIMIT_NON_CONNECTED);
+        ? poi?.stations_velo_proches || []
+        : (poi?.stations_velo_proches || []).slice(0, LIMIT_NON_CONNECTED);
 
     const parkings = isAuthenticated
-        ? trajet.parkings_proches || []
-        : (trajet.parkings_proches || []).slice(0, LIMIT_NON_CONNECTED);
+        ? poi?.parkings_proches || []
+        : (poi?.parkings_proches || []).slice(0, LIMIT_NON_CONNECTED);
 
     const allActivities = isAuthenticated
-        ? trajet.activites_proches || []
-        : (trajet.activites_proches || []).slice(0, LIMIT_NON_CONNECTED);
+        ? poi?.activites_proches || []
+        : (poi?.activites_proches || []).slice(0, LIMIT_NON_CONNECTED);
 
     // Filtrer les activites selon les sous-filtres
     const filteredActivities = allActivities.filter(activityMatchesFilter);
@@ -223,19 +271,128 @@ export default function SearchResult() {
         return allActivities.filter(a => config.types.includes(a.category)).length;
     };
 
+    const co2Saved = trajet.co2_voiture_kg && trajet.co2_train_kg
+        ? trajet.co2_voiture_kg - trajet.co2_train_kg
+        : null;
+
+    const prochainsDepartsData = trajet.prochains_departs || [];
+
     return (
         <div className="search-result-page">
-            <h2>
-                Trajet {trajet.from_city} → {trajet.to_city}
-            </h2>
-
-            <div className="trajet-info">
-                <p><strong>Duree :</strong> {trajet.duree || "Non disponible"}</p>
-                <p><strong>Distance :</strong> {trajet.distance_km?.toFixed(1) || "N/A"} km</p>
-                <p><strong>Prix moyen :</strong> {trajet.prix_moyen?.toFixed(2) || "N/A"} €</p>
-                <p className="co2-info">🌱 Train : {trajet.co2_train_kg?.toFixed(2) || "N/A"} kg CO2</p>
-                <p className="co2-info">🚗 Voiture : {trajet.co2_voiture_kg?.toFixed(2) || "N/A"} kg CO2</p>
+            {/* Header avec partage */}
+            <div className="result-header">
+                <h2>🚆 {trajet.from_city} → {trajet.to_city}</h2>
+                <ShareButton trajet={trajet} />
             </div>
+
+            {/* Météo à destination */}
+            {end?.latitude && (
+                <WeatherWidget
+                    lat={end.latitude}
+                    lon={end.longitude}
+                    cityName={trajet.to_city}
+                    travelDate={travelDate}
+                />
+            )}
+
+            {/* Infos du trajet */}
+            <div className="trajet-info">
+                <p><strong>Durée :</strong> {trajet.duree || "Non disponible"}</p>
+                <p><strong>Distance :</strong> {trajet.distance_km?.toFixed(1) || "N/A"} km</p>
+                <p>
+                    <strong>Prix indicatif :</strong>{" "}
+                    {trajet.prix_indicatif ? `${Math.round(trajet.prix_indicatif)} €` : "N/A"}
+                    <span className="prix-note"> (tarif de référence SNCF Open Data)</span>
+                </p>
+                <p className="co2-info">🌱 Train : {trajet.co2_train_kg?.toFixed(2) || "N/A"} kg CO₂</p>
+                <p className="co2-info">🚗 Voiture : {trajet.co2_voiture_kg?.toFixed(2) || "N/A"} kg CO₂</p>
+                {trajet.co2_avion_kg && (
+                    <p className="co2-info">✈️ Avion : {trajet.co2_avion_kg?.toFixed(2)} kg CO₂
+                        <span className="avion-note"> ({Math.round(trajet.co2_avion_kg / (trajet.co2_train_kg || 1))}x plus polluant)</span>
+                    </p>
+                )}
+            </div>
+
+            {/* Comparatif transport */}
+            {trajet.co2_train_kg && trajet.co2_voiture_kg && (
+                <div className="transport-comparison">
+                    <h3>Comparatif CO₂ par transport</h3>
+                    <div className="transport-bars">
+                        {[
+                            { label: "🚆 Train", val: trajet.co2_train_kg, color: "#009485" },
+                            { label: "🚗 Voiture", val: trajet.co2_voiture_kg, color: "#e74c3c" },
+                            ...(trajet.co2_avion_kg ? [{ label: "✈️ Avion", val: trajet.co2_avion_kg, color: "#e67e22" }] : []),
+                        ].map(({ label, val, color }) => {
+                            const max = Math.max(trajet.co2_train_kg, trajet.co2_voiture_kg, trajet.co2_avion_kg || 0);
+                            const pct = Math.round((val / max) * 100);
+                            return (
+                                <div key={label} className="transport-bar-row">
+                                    <span className="transport-bar-label">{label}</span>
+                                    <div className="transport-bar-track">
+                                        <div className="transport-bar-fill" style={{ width: `${pct}%`, background: color }} />
+                                    </div>
+                                    <span className="transport-bar-val">{val.toFixed(1)} kg</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* CO2 équivalences */}
+            <CO2Equivalences co2SavedKg={co2Saved} />
+
+            {/* Prochains départs */}
+            {prochainsDepartsData.length > 0 && (
+                <div className="prochains-departs">
+                    <h3>Prochains départs</h3>
+                    <div className="departs-tabs">
+                        {prochainsDepartsData.map((dep, idx) => (
+                            <button
+                                key={idx}
+                                className={`depart-tab ${activeJourneyIdx === idx ? "active" : ""}`}
+                                onClick={() => setActiveJourneyIdx(idx)}
+                            >
+                                <span className="depart-time">{dep.depart?.slice(0,2)}h{dep.depart?.slice(2,4)}</span>
+                                <span className="depart-arrow">→</span>
+                                <span className="depart-time">{dep.arrivee?.slice(0,2)}h{dep.arrivee?.slice(2,4)}</span>
+                                <span className="depart-duree">{dep.duree}</span>
+                                {dep.nb_changements > 0 && (
+                                    <span className="depart-changes">{dep.nb_changements} chgt</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Alerte prix */}
+            <div className="alert-prix-section">
+                {!alertPrixOpen ? (
+                    <button className="alert-prix-btn" onClick={() => setAlertPrixOpen(true)}>
+                        🔔 Créer une alerte prix
+                    </button>
+                ) : (
+                    <div className="alert-prix-form">
+                        <span>Me prévenir si le prix indicatif passe sous</span>
+                        <input
+                            type="number"
+                            min="1"
+                            value={alertPrixVal}
+                            onChange={(e) => setAlertPrixVal(e.target.value)}
+                            placeholder="ex: 50"
+                        />
+                        <span>€</span>
+                        <button className="alert-prix-save" onClick={handleAlertPrix}>Enregistrer</button>
+                        <button className="alert-prix-cancel" onClick={() => setAlertPrixOpen(false)}>Annuler</button>
+                    </div>
+                )}
+            </div>
+
+            {/* Indicateur chargement POI */}
+            {poiLoading && (
+                <p className="poi-loading">Chargement des points d'intérêt...</p>
+            )}
 
             {/* Filtres */}
             <div className="filters-container">
@@ -309,43 +466,37 @@ export default function SearchResult() {
             {/* Carte */}
             <div className="map-container">
                 <MapContainer
-                    key={`${startPos[0]}-${endPos[0]}`}
+                    key={`${center[0]}-${center[1]}`}
                     center={center}
-                    zoom={6}
+                    zoom={hasCoords ? 6 : 5}
                     scrollWheelZoom={true}
                 >
                 <MapAutoResize />
-                {/* Fond de carte OpenStreetMap */}
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <Marker position={startPos}>
-                    <Popup>Depart : {trajet.from_city}</Popup>
-                </Marker>
-
-                <Marker position={endPos}>
-                    <Popup>Arrivee : {trajet.to_city}</Popup>
-                </Marker>
+                {hasCoords && <Marker position={startPos}><Popup>Depart : {trajet.from_city}</Popup></Marker>}
+                {hasCoords && <Marker position={endPos}><Popup>Arrivee : {trajet.to_city}</Popup></Marker>}
 
                 {/* Tracé du trajet : réel si disponible, sinon ligne droite */}
-                {hasRealRoute ? (
+                {hasCoords && hasRealRoute ? (
                     <Polyline
                         positions={routeCoords}
                         color="#009485"
                         weight={5}
                         opacity={0.8}
                     />
-                ) : (
+                ) : hasCoords ? (
                     <Polyline
                         positions={[startPos, endPos]}
-                        color="blue"
+                        color="#8B9E6A"
                         weight={4}
                         dashArray="10, 10"
-                        opacity={0.6}
+                        opacity={0.7}
                     />
-                )}
+                ) : null}
 
                 {/* Marqueurs Hotels */}
                 {showHotels && hotels.map((hotel, idx) => (
@@ -374,7 +525,7 @@ export default function SearchResult() {
                             <Popup>
                                 <strong>🚲 {bike.name || "Station velo"}</strong><br />
                                 📍 {bike.distance_km_from_station} km de la gare<br />
-                                Type : {bike.type === "bicycle_rental" ? "Location" : "Parking"}
+                                Type : {bike.type === "bicycle_rental" ? "🔑 Location" : "🅿️ Parking vélo"}
                             </Popup>
                         </Marker>
                     )

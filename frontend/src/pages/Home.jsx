@@ -1,4 +1,4 @@
-import logo from "../assets/Logo-train-go-eco.png";
+import logo from "../assets/railgo_logo.svg";
 import { useNavigate } from "react-router-dom";
 import {useEffect} from "react";
 
@@ -20,7 +20,7 @@ function Home() {
             <img
                 className="imgHome"
                 src={logo}
-                alt="Logo Go eco"
+                alt="Logo RailGo"
             />
             <h1 className= "slogan">Voyager mieux c'est déjà changer le monde</h1>
         </div>

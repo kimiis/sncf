@@ -1,335 +1,287 @@
 import { useState, useEffect } from "react";
-import { FaSearch, FaHeart, FaLeaf, FaTrain, FaChair, FaWifi, FaCity, FaClock, FaEuroSign, FaSmile } from "react-icons/fa";
-import coteAzur from "../assets/cote-azur.png";
-import annecy from "../assets/annecy.png";
+import { FaSearch, FaHeart, FaLeaf, FaTrain, FaChair, FaWifi, FaCity, FaClock, FaEuroSign, FaSmile, FaDice, FaMapMarkerAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import "../styles/index.css";
 
 function Index() {
     const [favoris, setFavoris] = useState(false);
-    const [slideIndex, setSlideIndex] = useState(0);
     const [fromCity, setFromCity] = useState("");
     const [toCity, setToCity] = useState("");
+    const [travelDate, setTravelDate] = useState("");
     const [suggestionsFrom, setSuggestionsFrom] = useState([]);
     const [suggestionsTo, setSuggestionsTo] = useState([]);
     const [destinations, setDestinations] = useState([]);
+    const [globalStats, setGlobalStats] = useState(null);
+    const [geoLoading, setGeoLoading] = useState(false);
     const navigate = useNavigate();
 
-    // Charger les destinations dynamiques depuis l'API
     useEffect(() => {
-        const fetchDestinations = async () => {
-            try {
-                const { data } = await api.get("http://localhost:9000/sncf/destinations");
-                setDestinations(data);
-            } catch (err) {
-                console.error("Erreur lors du chargement des destinations:", err);
-                // Fallback sur des destinations par défaut en cas d'erreur
-                setDestinations([
-                    { id: 1, image: annecy, description: "Cap sur Annecy entre lac et montagnes", name: "Annecy" },
-                    { id: 2, image: coteAzur, description: "La Côte d'Azur sans voiture", name: "Nice" },
-                ]);
-            }
-        };
-        fetchDestinations();
+        api.get("/sncf/destinations")
+            .then(({ data }) => setDestinations(data))
+            .catch(() => {});
     }, []);
 
-    // Carrousel (change toutes les 4 secondes)
     useEffect(() => {
-        if (destinations.length === 0) return;
-        const interval = setInterval(() => {
-            setSlideIndex((prev) => (prev + 1) % destinations.length);
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [destinations.length]);
+        api.get("/stats/global")
+            .then(({ data }) => setGlobalStats(data))
+            .catch(() => {});
+    }, []);
 
-    // Recherche
-    const handleSearch = () => {
-        if (!fromCity || !toCity) return;
-        navigate(`/search?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`);
+    const handleSurpriseMe = () => {
+        if (destinations.length === 0) return;
+        const dest = destinations[Math.floor(Math.random() * destinations.length)];
+        navigate(`/search?from=${encodeURIComponent(fromCity || "Paris")}&to=${encodeURIComponent(dest.name)}`);
     };
 
-    // Suggestions dynamiques (max 5 résultats)
+    const handleGeolocate = () => {
+        if (!navigator.geolocation) return;
+        setGeoLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                try {
+                    const { latitude, longitude } = pos.coords;
+                    const { data } = await api.get(`/sncf/gare-proche?lat=${latitude}&lon=${longitude}`);
+                    if (data.gare) setFromCity(data.gare);
+                } catch {}
+                setGeoLoading(false);
+            },
+            () => setGeoLoading(false)
+        );
+    };
+
+    const handleSearch = () => {
+        if (!fromCity || !toCity) return;
+        const p = new URLSearchParams({ from: fromCity, to: toCity });
+        if (travelDate) p.set("date", travelDate);
+        navigate(`/search?${p.toString()}`);
+    };
+
     const handleInputChange = async (value, type) => {
-        if (!value) {
-            if (type === "from") {
-                setFromCity("");
-                setSuggestionsFrom([]);
-            } else {
-                setToCity("");
-                setSuggestionsTo([]);
-            }
-            return;
-        }
-
+        const setter = type === "from" ? setFromCity : setToCity;
+        const suggSetter = type === "from" ? setSuggestionsFrom : setSuggestionsTo;
+        setter(value);
+        if (!value) { suggSetter([]); return; }
         try {
-            const res = await api.get(`/sncf/autocomplete?q=${value}`);
-            const filtered = Array.isArray(res.data) ? res.data.slice(0, 5) : [];
-
-            if (type === "from") {
-                setFromCity(value);
-                setSuggestionsFrom(filtered);
-            } else {
-                setToCity(value);
-                setSuggestionsTo(filtered);
-            }
-        } catch (err) {
-            console.error("Erreur autocomplétion :", err);
-        }
+            const { data } = await api.get(`/sncf/autocomplete?q=${value}`);
+            suggSetter(Array.isArray(data) ? data.slice(0, 5) : []);
+        } catch { suggSetter([]); }
     };
 
     const handleSelect = (value, type) => {
-        if (type === "from") {
-            setFromCity(value);
-            setSuggestionsFrom([]);
-        } else {
-            setToCity(value);
-            setSuggestionsTo([]);
-        }
+        if (type === "from") { setFromCity(value); setSuggestionsFrom([]); }
+        else { setToCity(value); setSuggestionsTo([]); }
     };
 
-    // Ajouter/retirer des favoris
     const toggleFavoris = () => {
-        if (!fromCity || !toCity) {
-            alert("Veuillez sélectionner un trajet avant de l'ajouter aux favoris");
-            return;
-        }
-
-        // Récupérer les favoris existants
-        const existingFavoris = JSON.parse(localStorage.getItem('trajetFavoris') || '[]');
-
-        // Vérifier si le trajet existe déjà
-        const trajetExists = existingFavoris.some(
-            fav => fav.from === fromCity && fav.to === toCity
-        );
-
-        if (trajetExists) {
-            // Retirer des favoris
-            const updatedFavoris = existingFavoris.filter(
-                fav => !(fav.from === fromCity && fav.to === toCity)
-            );
-            localStorage.setItem('trajetFavoris', JSON.stringify(updatedFavoris));
+        if (!fromCity || !toCity) return;
+        const favs = JSON.parse(localStorage.getItem("trajetFavoris") || "[]");
+        const exists = favs.some(f => f.from === fromCity && f.to === toCity);
+        if (exists) {
+            localStorage.setItem("trajetFavoris", JSON.stringify(favs.filter(f => !(f.from === fromCity && f.to === toCity))));
             setFavoris(false);
-            alert("Trajet retiré des favoris");
         } else {
-            // Ajouter aux favoris
-            const newFavori = {
-                id: Date.now(),
-                from: fromCity,
-                to: toCity,
-                date: new Date().toISOString()
-            };
-            existingFavoris.push(newFavori);
-            localStorage.setItem('trajetFavoris', JSON.stringify(existingFavoris));
+            favs.push({ id: Date.now(), from: fromCity, to: toCity, date: new Date().toISOString() });
+            localStorage.setItem("trajetFavoris", JSON.stringify(favs));
             setFavoris(true);
-            alert("Trajet ajouté aux favoris !");
         }
     };
 
-    // Vérifier si le trajet actuel est en favoris
     useEffect(() => {
         if (fromCity && toCity) {
-            const existingFavoris = JSON.parse(localStorage.getItem('trajetFavoris') || '[]');
-            const isFavorite = existingFavoris.some(
-                fav => fav.from === fromCity && fav.to === toCity
-            );
-            setFavoris(isFavorite);
+            const favs = JSON.parse(localStorage.getItem("trajetFavoris") || "[]");
+            setFavoris(favs.some(f => f.from === fromCity && f.to === toCity));
         } else {
             setFavoris(false);
         }
     }, [fromCity, toCity]);
 
+    const WHY_ITEMS = [
+        { icon: <FaLeaf />, label: "40x moins de CO₂" },
+        { icon: <FaTrain />, label: "Pas de bouchons" },
+        { icon: <FaChair />, label: "Confort & espace" },
+        { icon: <FaWifi />, label: "Wifi & prises" },
+        { icon: <FaCity />, label: "Centre-ville" },
+        { icon: <FaClock />, label: "Ponctualité" },
+        { icon: <FaEuroSign />, label: "Économique" },
+        { icon: <FaSmile />, label: "Zéro stress" },
+    ];
+
     return (
         <div className="index-page">
-            {/* Hero Section */}
-            <section className="hero-section">
-                <h1 className="hero-title">Voyagez autrement, voyagez mieux</h1>
-                <p className="hero-subtitle">Découvrez la France en train tout en préservant la planète</p>
-            </section>
 
-            {/* Barre de recherche */}
-            <section className="search-section">
-                <div className="search-bar">
+            {/* ── HERO ── */}
+            <section className="hero-section">
+                <div className="hero-text">
+                    <h1 className="hero-title">Votre prochaine escapade en train</h1>
+                    <p className="hero-subtitle">Voyagez responsable, découvrez la France autrement</p>
+                </div>
+
+                {/* SEARCH CARD */}
+                <div className="search-card">
                     {/* Départ */}
-                    <div className="input-wrapper">
-                        <input
-                            type="text"
-                            className="search-placeholder"
-                            placeholder="Départ"
-                            value={fromCity}
-                            onChange={(e) => handleInputChange(e.target.value, "from")}
-                        />
-                        {suggestionsFrom.length > 0 && (
-                            <ul className="suggestions">
-                                {suggestionsFrom.map((gare, i) => (
-                                    <li key={i} onClick={() => handleSelect(gare, "from")}>
-                                        {gare}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                    <div className="search-row">
+                        <FaTrain className="search-row-icon" />
+                        <div className="input-wrapper">
+                            <input
+                                type="text"
+                                className="search-placeholder"
+                                placeholder="Gare de départ"
+                                value={fromCity}
+                                onChange={(e) => handleInputChange(e.target.value, "from")}
+                            />
+                            {suggestionsFrom.length > 0 && (
+                                <ul className="suggestions">
+                                    {suggestionsFrom.map((g, i) => (
+                                        <li key={i} onClick={() => handleSelect(g, "from")}>{g}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <button
+                            className="geo-btn"
+                            onClick={handleGeolocate}
+                            disabled={geoLoading}
+                            title="Gare la plus proche"
+                        >
+                            <FaMapMarkerAlt />
+                        </button>
                     </div>
 
                     {/* Arrivée */}
-                    <div className="input-wrapper">
-                        <input
-                            type="text"
-                            className="search-placeholder"
-                            placeholder="Arrivée"
-                            value={toCity}
-                            onChange={(e) => handleInputChange(e.target.value, "to")}
-                        />
-                        {suggestionsTo.length > 0 && (
-                            <ul className="suggestions">
-                                {suggestionsTo.map((gare, i) => (
-                                    <li key={i} onClick={() => handleSelect(gare, "to")}>
-                                        {gare}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                    <div className="search-row">
+                        <FaSearch className="search-row-icon" />
+                        <div className="input-wrapper">
+                            <input
+                                type="text"
+                                className="search-placeholder"
+                                placeholder="Destination"
+                                value={toCity}
+                                onChange={(e) => handleInputChange(e.target.value, "to")}
+                            />
+                            {suggestionsTo.length > 0 && (
+                                <ul className="suggestions">
+                                    {suggestionsTo.map((g, i) => (
+                                        <li key={i} onClick={() => handleSelect(g, "to")}>{g}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <button
+                            className={`fav-btn ${favoris ? "active" : ""}`}
+                            onClick={toggleFavoris}
+                            title="Mettre en favori"
+                        >
+                            <FaHeart />
+                        </button>
                     </div>
 
-                    <input type="date" />
-                    <button className="search-btn" onClick={handleSearch}>
-                        <FaSearch />
+                    {/* Date + Rechercher */}
+                    <div className="search-bottom">
+                        <input
+                            type="date"
+                            className="search-date"
+                            value={travelDate}
+                            onChange={(e) => setTravelDate(e.target.value)}
+                            min={new Date().toISOString().split("T")[0]}
+                        />
+                        <button className="search-submit" onClick={handleSearch}>
+                            <FaSearch /> Rechercher
+                        </button>
+                    </div>
+
+                    <button className="surprise-btn" onClick={handleSurpriseMe}>
+                        <FaDice /> Surprends-moi !
                     </button>
                 </div>
             </section>
 
-            {/* Favoris */}
-            <p className="favoris-text" onClick={toggleFavoris}>
-                <FaHeart className={favoris ? "favoris active" : "favoris"} />
-                {favoris ? "Retirer des favoris" : "Mettre ce trajet en favoris"}
-            </p>
-
-            {/* Section comparaison Train vs Voiture */}
-            <section className="comparison-section">
-                <h2 className="section-title">Train vs Voiture : Les chiffres parlent</h2>
-                <div className="comparison-cards">
-                    <div className="comparison-card eco">
-                        <div className="comparison-icon">
-                            <FaLeaf />
-                        </div>
-                        <h3>40x moins de CO₂</h3>
-                        <p className="comparison-stat">1,9 kg CO₂</p>
-                        <p className="comparison-label">vs 122 kg en voiture</p>
-                        <p className="comparison-detail">pour 100 km par personne</p>
+            {/* ── STATS ── */}
+            {globalStats && (
+                <section className="stats-strip">
+                    <div className="stat-pill">
+                        <div className="stat-pill-val">{Math.round(globalStats.total_co2_economise_kg).toLocaleString("fr-FR")} kg</div>
+                        <div className="stat-pill-label">CO₂ économisé</div>
                     </div>
-
-                    <div className="comparison-card time">
-                        <div className="comparison-icon">
-                            <FaClock />
-                        </div>
-                        <h3>Temps utile</h3>
-                        <p className="comparison-stat">100%</p>
-                        <p className="comparison-label">productif ou reposant</p>
-                        <p className="comparison-detail">Travaillez, lisez ou dormez</p>
+                    <div className="stat-divider" />
+                    <div className="stat-pill">
+                        <div className="stat-pill-val">{globalStats.arbres_equivalents.toLocaleString("fr-FR")}</div>
+                        <div className="stat-pill-label">arbres plantés</div>
                     </div>
-
-                    <div className="comparison-card money">
-                        <div className="comparison-icon">
-                            <FaEuroSign />
-                        </div>
-                        <h3>Economique</h3>
-                        <p className="comparison-stat">-50%</p>
-                        <p className="comparison-label">de frais en moyenne</p>
-                        <p className="comparison-detail">Péage + essence + parking</p>
+                    <div className="stat-divider" />
+                    <div className="stat-pill">
+                        <div className="stat-pill-val">{globalStats.total_trajets.toLocaleString("fr-FR")}</div>
+                        <div className="stat-pill-label">trajets recherchés</div>
                     </div>
+                </section>
+            )}
 
-                    <div className="comparison-card stress">
-                        <div className="comparison-icon">
-                            <FaSmile />
-                        </div>
-                        <h3>Zéro stress</h3>
-                        <p className="comparison-stat">0</p>
-                        <p className="comparison-label">embouteillage</p>
-                        <p className="comparison-detail">Arrivée garantie à l'heure</p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Impact card */}
-            <section className="impact-section">
-                <div className="impact-card">
-                    <div className="impact-content">
-                        <h3 className="impact-title">Votre impact compte</h3>
-                        <p className="impact-text">
-                            Un trajet Paris - Lyon en train plutôt qu'en voiture, c'est <strong>120 kg de CO₂ économisés</strong>.
-                            L'équivalent de <strong>600 km parcourus en voiture</strong> ou <strong>15 jours de chauffage</strong> pour un appartement.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Carrousel */}
-            <section className="carousel">
-                <h2 className="section-title">Destinations coup de cœur</h2>
-                {destinations.length > 0 && (
-                    <>
-                        <div className="carousel-slide">
-                            <img
-                                src={destinations[slideIndex].image}
-                                alt={destinations[slideIndex].name}
-                                className="carousel-img"
-                            />
-                            <div className="carousel-text-overlay">
-                                <h3>{destinations[slideIndex].name}</h3>
-                                <p>{destinations[slideIndex].description}</p>
-                                {destinations[slideIndex].region && (
-                                    <span className="region-badge">{destinations[slideIndex].region}</span>
-                                )}
+            {/* ── DESTINATIONS ── */}
+            {destinations.length > 0 && (
+                <section className="destinations-section">
+                    <h2 className="section-heading">Destinations coup de coeur</h2>
+                    <div className="destinations-scroll">
+                        {destinations.map((dest) => (
+                            <div
+                                key={dest.id}
+                                className="dest-card"
+                                onClick={() => navigate(`/search?from=${encodeURIComponent(fromCity || "Paris")}&to=${encodeURIComponent(dest.name)}`)}
+                            >
+                                {dest.image ? (
+                                    <img
+                                        src={dest.image}
+                                        alt={dest.name}
+                                        className="dest-card-img"
+                                        onError={(e) => {
+                                            e.target.style.display = "none";
+                                            e.target.nextSibling.style.display = "flex";
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    className="dest-card-no-img"
+                                    style={{ display: dest.image ? "none" : "flex" }}
+                                >
+                                    🚆
+                                </div>
+                                <div className="dest-card-body">
+                                    <div className="dest-card-name">{dest.name}</div>
+                                    <div className="dest-card-region">{dest.region}</div>
+                                </div>
                             </div>
-                        </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
-                        <div className="carousel-dots">
-                            {destinations.map((_, i) => (
-                                <span
-                                    key={i}
-                                    className={`dot ${i === slideIndex ? "active" : ""}`}
-                                    onClick={() => setSlideIndex(i)}
-                                ></span>
-                            ))}
+            {/* ── POURQUOI LE TRAIN ── */}
+            <section className="why-section">
+                <h2 className="section-heading">Pourquoi voyager en train ?</h2>
+                <div className="why-grid">
+                    {WHY_ITEMS.map(({ icon, label }) => (
+                        <div key={label} className="why-pill">
+                            <span className="why-pill-icon">{icon}</span>
+                            <span>{label}</span>
                         </div>
-                    </>
-                )}
-            </section>
-
-            {/* Pourquoi choisir le train */}
-            <section className="reasons-section">
-                <h2 className="section-title">Les avantages du train</h2>
-                <div className="reasons-grid">
-                    <div className="reason">
-                        <FaLeaf className="reason-icon" />
-                        <span className="reason-text">Eco-responsable</span>
-                    </div>
-                    <div className="reason">
-                        <FaTrain className="reason-text" />
-                        <span className="reason-text">Pas de bouchons</span>
-                    </div>
-                    <div className="reason">
-                        <FaChair className="reason-icon" />
-                        <span className="reason-text">Confort & espace</span>
-                    </div>
-                    <div className="reason">
-                        <FaWifi className="reason-icon" />
-                        <span className="reason-text">Wifi & prises</span>
-                    </div>
-                    <div className="reason">
-                        <FaCity className="reason-icon" />
-                        <span className="reason-text">Gare en centre-ville</span>
-                    </div>
-                    <div className="reason">
-                        <FaClock className="reason-icon" />
-                        <span className="reason-text">Ponctualité</span>
-                    </div>
+                    ))}
                 </div>
             </section>
 
+            {/* ── IMPACT ── */}
+            <section className="impact-banner">
+                <h3>Votre impact compte</h3>
+                <p>
+                    Un trajet Paris – Lyon en train plutôt qu'en voiture, c'est{" "}
+                    <strong>120 kg de CO₂ économisés</strong> — l'équivalent de{" "}
+                    <strong>600 km en voiture</strong> ou <strong>15 jours de chauffage</strong>.
+                </p>
+            </section>
+
+            {/* ── FOOTER ── */}
             <footer className="index-footer">
-                <p className="footer-main">Voyager en train, c'est plus que se déplacer : <strong>c'est agir pour demain.</strong></p>
-                <p className="footer-stat">🌱 Chaque année, le train évite l'émission de 3 millions de tonnes de CO₂ en France</p>
+                <p>Voyager en train, c'est plus que se déplacer : <strong>c'est agir pour demain.</strong></p>
             </footer>
+
         </div>
     );
 }

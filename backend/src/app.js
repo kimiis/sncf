@@ -13,10 +13,10 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(helmet());
 
-// Limite les requêtes : max 100 par 15 minutes
+// Limite les requêtes : max 1000 par 15 minutes
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 1000,
 });
 app.use(limiter);
 

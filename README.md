@@ -1,4 +1,4 @@
-# GoEco
+# RailGo
 
 Application web pour encourager le voyage en train en France. Elle permet de rechercher des trajets, comparer l'impact environnemental avec la voiture et l'avion, et decouvrir des points d'interet autour des gares de depart et d'arrivee.
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
-import { FaUser, FaHeart, FaHistory, FaMoon, FaSun, FaSignOutAlt, FaTrain, FaMapMarkerAlt, FaClock, FaLeaf, FaEdit, FaTimes, FaTrophy, FaMedal } from "react-icons/fa";
+import { FaUser, FaHeart, FaHistory, FaMoon, FaSun, FaSignOutAlt, FaTrain, FaMapMarkerAlt, FaClock, FaLeaf, FaEdit, FaTimes, FaTrophy } from "react-icons/fa";
 import api from "../api/axios";
 import "../styles/profil.css";
 

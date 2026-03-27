@@ -18,7 +18,6 @@ export default function Inspiration() {
     const [destinations, setDestinations] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [activeTag, setActiveTag] = useState("all");
-    const [budgetMax, setBudgetMax] = useState("");
     const [fromCity, setFromCity] = useState("Paris");
     const [loading, setLoading] = useState(true);
 

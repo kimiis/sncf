@@ -12,12 +12,11 @@ const NavBar = () => {
     const token = localStorage.getItem("token");
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    let role = null;
     if (token) {
         try {
-            role = jwtDecode(token).role;
+            jwtDecode(token);
         } catch {
-            role = null;
+            // token invalide
         }
     }
 
@@ -83,9 +82,6 @@ const NavBar = () => {
                         </>
                     )}
                 </div>
-                <p className="nav-slogan">
-                    Voyage en train, voyage responsable.
-                </p>
             </nav>
 
             {/* Modal de connexion / inscription */}

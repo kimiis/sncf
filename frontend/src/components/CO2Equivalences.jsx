@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { FaTree, FaCar, FaFire, FaMobileAlt, FaLeaf } from "react-icons/fa";
 
 const EQUIVALENCES = [
-    { icon: "🌳", label: "arbres plantés", factor: 1 / 21, unit: "" },
-    { icon: "🚗", label: "km de voiture évités", factor: 1 / 0.122, unit: "km" },
-    { icon: "🏠", label: "jours de chauffage évités", factor: 1 / 8, unit: "" },
-    { icon: "📱", label: "charges de smartphone", factor: 1 / 0.008, unit: "" },
+    { icon: <FaTree />,      label: "arbres plantés",           factor: 1 / 21,    unit: "" },
+    { icon: <FaCar />,       label: "km de voiture évités",     factor: 1 / 0.122, unit: "km" },
+    { icon: <FaFire />,      label: "jours de chauffage évités",factor: 1 / 8,     unit: "" },
+    { icon: <FaMobileAlt />, label: "charges de smartphone",    factor: 1 / 0.008, unit: "" },
 ];
 
 export default function CO2Equivalences({ co2SavedKg }) {
@@ -20,7 +21,7 @@ export default function CO2Equivalences({ co2SavedKg }) {
     return (
         <div className={`co2-equiv-section ${visible ? "co2-visible" : ""}`}>
             <h3 className="co2-equiv-title">
-                🌱 En prenant ce train tu économises <strong>{co2SavedKg.toFixed(1)} kg de CO₂</strong>, soit&nbsp;:
+                <FaLeaf /> En prenant ce train tu économises <strong>{co2SavedKg.toFixed(1)} kg de CO₂</strong>, soit&nbsp;:
             </h3>
             <div className="co2-equiv-grid">
                 {EQUIVALENCES.map(({ icon, label, factor, unit }) => {

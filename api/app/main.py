@@ -309,60 +309,6 @@ def autocomplete(q: str = ""):
     return resultats[:10]
 
 
-@app.get("/", response_class=HTMLResponse)
-def root():
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Recherche de trajet SNCF</title>
-      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-      <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-      <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"/>
-    </head>
-    <body>
-      <h2>Recherche de trajet SNCF</h2>
-      <label>Gare départ: <input id="from_city" /></label><br/><br/>
-      <label>Gare arrivée: <input id="to_city" /></label><br/><br/>
-      <button id="searchBtn">Rechercher</button>
-      <pre id="result"></pre>
-      <script>
-        function setupAutocomplete(selector) {
-          $(selector).autocomplete({
-            source: function(request, response) {
-              $.ajax({
-                url: "/autocomplete",
-                data: { q: request.term },
-                success: function(data) {
-                  response(data);
-                }
-              });
-            },
-            minLength: 2
-          });
-        }
-        $(document).ready(function() {
-          setupAutocomplete("#from_city");
-          setupAutocomplete("#to_city");
-          $("#searchBtn").click(function() {
-            const from_city = $("#from_city").val();
-            const to_city = $("#to_city").val();
-            if (!from_city || !to_city) {
-              alert("Veuillez saisir les deux gares");
-              return;
-            }
-            $.getJSON("/trajet", { from_city, to_city }, function(data) {
-              $("#result").text(JSON.stringify(data, null, 2));
-            }).fail(() => {
-              $("#result").text("Erreur lors de la récupération du trajet.");
-            });
-          });
-        });
-      </script>
-    </body>
-    </html>
-    """
-    return html_content
 
 
 def get_code_uic(station_name: str):

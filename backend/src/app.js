@@ -9,9 +9,9 @@ const app = express();
 
 // Middlewares globaux
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: "*", credentials: false }));
 app.use(morgan("dev"));
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
 // Limite les requêtes : max 1000 par 15 minutes
 const limiter = rateLimit({

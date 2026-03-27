@@ -2,7 +2,7 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/build",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/handler.py" },
+    { "source": "/api/:path*", "destination": "/api/main.py" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

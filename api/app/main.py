@@ -194,8 +194,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Chemin vers la racine du projet (2 niveaux au-dessus de main.py)
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Chemin vers la racine du projet — robuste quel que soit l'environnement
+_this_file = os.path.abspath(__file__)
+_api_app_dir = os.path.dirname(_this_file)       # api/app/
+_api_dir     = os.path.dirname(_api_app_dir)      # api/
+_root_candidate = os.path.dirname(_api_dir)       # racine (local et Vercel)
+# Sur Vercel, /var/task est la racine du repo
+ROOT_DIR = _root_candidate if os.path.isdir(os.path.join(_root_candidate, "Data")) else "/var/task"
 
 # Chemins vers fichiers Excel (source unique : Data/DataLake/processed/)
 DATA_DIR = os.path.join(ROOT_DIR, "Data", "DataLake", "processed")

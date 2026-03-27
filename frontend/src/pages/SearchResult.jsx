@@ -92,9 +92,22 @@ export default function SearchResult() {
                     params: { from_city: fromCity, to_city: toCity },
                 });
                 setTrajet(data);
-                if (data && isAuthenticated) {
-                    const co2Saved = data.co2_voiture_kg && data.co2_train_kg
-                        ? (data.co2_voiture_kg - data.co2_train_kg).toFixed(1) : null;
+
+                // Toujours sauvegarder en localStorage (fallback fiable)
+                const co2Saved = data.co2_voiture_kg && data.co2_train_kg
+                    ? (data.co2_voiture_kg - data.co2_train_kg).toFixed(1) : null;
+                const trajetData = {
+                    id: Date.now(), from: fromCity, to: toCity,
+                    date: new Date().toISOString(), duration: data.duree || "N/A",
+                    co2Saved: co2Saved ? `${co2Saved} kg` : "N/A",
+                    price: data.prix_indicatif ? `${Math.round(data.prix_indicatif)}€` : "N/A",
+                };
+                const historique = JSON.parse(localStorage.getItem("trajetHistorique") || "[]");
+                historique.unshift(trajetData);
+                localStorage.setItem("trajetHistorique", JSON.stringify(historique.slice(0, 10)));
+
+                // Tenter la BDD si authentifié
+                if (isAuthenticated) {
                     try {
                         await api.post("/trajet/history", {
                             gare_depart: fromCity, gare_arrivee: toCity,
@@ -103,15 +116,7 @@ export default function SearchResult() {
                             prix: data.prix_indicatif ? `${Math.round(data.prix_indicatif)}€` : "N/A",
                         });
                     } catch {
-                        const trajetData = {
-                            id: Date.now(), from: fromCity, to: toCity,
-                            date: new Date().toISOString(), duration: data.duree || "N/A",
-                            co2Saved: co2Saved ? `${co2Saved} kg` : "N/A",
-                            price: data.prix_indicatif ? `${Math.round(data.prix_indicatif)}€` : "N/A",
-                        };
-                        const historique = JSON.parse(localStorage.getItem("trajetHistorique") || "[]");
-                        historique.unshift(trajetData);
-                        localStorage.setItem("trajetHistorique", JSON.stringify(historique.slice(0, 10)));
+                        // BDD indisponible — localStorage déjà sauvegardé ci-dessus
                     }
                 }
             } catch (err) {

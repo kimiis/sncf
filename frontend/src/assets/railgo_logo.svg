@@ -12,6 +12,6 @@
   <rect x="80" y="102" width="12" height="5" rx="0" fill="#8B9E6A"/>
   <rect x="28" y="107" width="84" height="2.5" rx="0" fill="#8B9E6A"/>
   <!-- Texte -->
-  <text x="128" y="76" font-size="48" font-weight="500" fill="#2D5443" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" letter-spacing="-1.5">Rail<tspan fill="#A6706A">go</tspan></text>
-  <text x="130" y="100" font-size="12" fill="#8B9E6A" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" letter-spacing="3.5">MOBILITÉ VERTE</text>
+  <text x="128" y="76" font-size="50" font-weight="500" fill="#2D5443" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" letter-spacing="-1.5">Rail<tspan fill="#A6706A">go</tspan></text>
+  <text x="130" y="100" font-size="16" fill="#8B9E6A" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" letter-spacing="3.5">MOBILITÉ VERTE</text>
 </svg>

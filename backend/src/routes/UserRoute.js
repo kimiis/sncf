@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/UserController");
-const { verifyToken, isAdmin } = require("../middlewares/AuthMiddleware");
+const { verifyToken, isAdmin } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/multer");
 
 // /api/users

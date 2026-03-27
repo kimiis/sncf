@@ -1,5 +1,5 @@
-api/
-backend/
-Data/
-requirements.txt
-Dockerfile
+/api/
+/backend/
+/Data/
+/requirements.txt
+/Dockerfile

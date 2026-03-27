@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import pandas as pd
 import base64
 import requests
@@ -14,6 +15,16 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 app = FastAPI()
+
+# Strip le préfixe /api quand FastAPI est appelé via Vercel
+class StripApiPrefix(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.scope["path"].startswith("/api/"):
+            request.scope["path"] = request.scope["path"][4:]
+            request.scope["raw_path"] = request.scope["path"].encode()
+        return await call_next(request)
+
+app.add_middleware(StripApiPrefix)
 
 # Cache simple pour éviter les requêtes Overpass répétées (rate limiting 429)
 overpass_cache = {}

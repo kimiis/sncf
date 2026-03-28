@@ -210,8 +210,12 @@ _this_file = os.path.abspath(__file__)
 _api_app_dir = os.path.dirname(_this_file)       # api/app/
 _api_dir     = os.path.dirname(_api_app_dir)      # api/
 _root_candidate = os.path.dirname(_api_dir)       # racine (local et Vercel)
-# Sur Vercel, /var/task est la racine du repo
-ROOT_DIR = _root_candidate if os.path.isdir(os.path.join(_root_candidate, "Data")) else "/var/task"
+# Cherche Data/ dans plusieurs candidates (local, Docker /app, Vercel /var/task)
+ROOT_DIR = next(
+    (p for p in [_root_candidate, _api_dir, "/var/task"]
+     if os.path.isdir(os.path.join(p, "Data"))),
+    _root_candidate
+)
 
 # Chemins vers fichiers Excel (source unique : Data/DataLake/processed/)
 DATA_DIR = os.path.join(ROOT_DIR, "Data", "DataLake", "processed")

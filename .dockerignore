@@ -1,0 +1,7 @@
+frontend/
+backend/
+.git/
+*.md
+.vercelignore
+vercel.json
+nul

@@ -1,18 +1,13 @@
-# Utiliser une image python officielle
 FROM python:3.11-slim
 
-# Définit le dossier de travail dans le conteneur
 WORKDIR /app
 
-
-COPY requirements.txt .
-
+COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier le reste du code source
-COPY . .
+COPY api/ .
+COPY Data/ ./Data/
 
 EXPOSE 8000
 
-# Commande pour lancer FastAPI avec Uvicorn
-CMD cd /app/sncf-analytics-service/app/ ; fastapi run ./main.py
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

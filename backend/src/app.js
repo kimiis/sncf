@@ -7,6 +7,9 @@ const mainRoutes = require("./routes");
 
 const app = express();
 
+// Railway utilise un reverse proxy — nécessaire pour rate-limit et IP réelle
+app.set("trust proxy", 1);
+
 // Middlewares globaux
 app.use(express.json());
 app.use(cors({ origin: "*", credentials: false }));

@@ -768,6 +768,76 @@ def trajet(
     }
 
 
+def get_all_poi(lat_arr: float, lon_arr: float, lat_dep: float, lon_dep: float):
+    """Récupère tous les POI en une seule requête Overpass pour éviter le rate-limiting."""
+    query = f"""
+    [out:json][timeout:40];
+    (
+      node["tourism"~"^(hotel|hostel|motel|guest_house|bed_and_breakfast)$"](around:1200,{lat_arr},{lon_arr});
+      way["tourism"~"^(hotel|hostel|motel|guest_house|bed_and_breakfast)$"](around:1200,{lat_arr},{lon_arr});
+      node["tourism"~"^(museum|attraction|gallery|viewpoint)$"](around:1200,{lat_arr},{lon_arr});
+      way["tourism"~"^(museum|attraction|gallery|viewpoint)$"](around:1200,{lat_arr},{lon_arr});
+      node["leisure"~"^(park|pitch|sports_centre|stadium|swimming_pool)$"](around:1200,{lat_arr},{lon_arr});
+      way["leisure"~"^(park|pitch|sports_centre|stadium|swimming_pool)$"](around:1200,{lat_arr},{lon_arr});
+      node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|cinema|theatre)$"](around:1200,{lat_arr},{lon_arr});
+      way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|cinema|theatre)$"](around:1200,{lat_arr},{lon_arr});
+      node["amenity"~"^(bicycle_rental|bicycle_parking)$"](around:800,{lat_arr},{lon_arr});
+      way["amenity"~"^(bicycle_rental|bicycle_parking)$"](around:800,{lat_arr},{lon_arr});
+      node["amenity"="parking"](around:800,{lat_dep},{lon_dep});
+      way["amenity"="parking"](around:800,{lat_dep},{lon_dep});
+    );
+    out center 200;
+    """
+    cache_key = f"poi_all_{lat_arr:.4f}_{lon_arr:.4f}_{lat_dep:.4f}_{lon_dep:.4f}"
+    data = overpass_query_cached(query, cache_key, timeout=40)
+
+    hotels, bikes, activities, parkings = [], [], [], []
+
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        tourism = tags.get("tourism", "")
+        amenity = tags.get("amenity", "")
+        leisure = tags.get("leisure", "")
+
+        if el.get("type") == "way":
+            center = el.get("center", {})
+            el_lat = center.get("lat")
+            el_lon = center.get("lon")
+        else:
+            el_lat = el.get("lat")
+            el_lon = el.get("lon")
+
+        if el_lat is None or el_lon is None:
+            continue
+
+        name = tags.get("name", "")
+
+        if tourism in ("hotel", "hostel", "motel", "guest_house", "bed_and_breakfast"):
+            dist = round(distance_haversine(lat_arr, lon_arr, el_lat, el_lon), 2)
+            hotels.append({"name": name or "Hôtel", "lat": el_lat, "lon": el_lon, "distance_km_from_station": dist})
+
+        elif amenity in ("bicycle_rental", "bicycle_parking"):
+            dist = round(distance_haversine(lat_arr, lon_arr, el_lat, el_lon), 2)
+            bikes.append({"name": name or "Station vélo", "lat": el_lat, "lon": el_lon, "distance_km_from_station": dist, "type": amenity})
+
+        elif amenity == "parking":
+            dist = round(distance_haversine(lat_dep, lon_dep, el_lat, el_lon), 2)
+            parkings.append({"name": name or "Parking", "lat": el_lat, "lon": el_lon, "distance_km_from_station": dist, "capacity": tags.get("capacity"), "fee": tags.get("fee", "unknown")})
+
+        elif (tourism in ("museum", "attraction", "gallery", "viewpoint") or
+              leisure in ("park", "pitch", "sports_centre", "stadium", "swimming_pool") or
+              amenity in ("restaurant", "cafe", "bar", "pub", "fast_food", "cinema", "theatre")):
+            dist = round(distance_haversine(lat_arr, lon_arr, el_lat, el_lon), 2)
+            activities.append({"name": name or "Activité", "lat": el_lat, "lon": el_lon, "distance_km_from_station": dist, "category": tourism or leisure or amenity})
+
+    hotels.sort(key=lambda x: x["distance_km_from_station"])
+    bikes.sort(key=lambda x: x["distance_km_from_station"])
+    activities.sort(key=lambda x: x["distance_km_from_station"])
+    parkings.sort(key=lambda x: x["distance_km_from_station"])
+
+    return hotels[:20], bikes[:80], activities[:20], parkings[:10]
+
+
 @app.get("/trajet/poi")
 def trajet_poi(
         lat_arr: float = Query(..., description="Latitude gare arrivée"),
@@ -775,20 +845,13 @@ def trajet_poi(
         lat_dep: float = Query(..., description="Latitude gare départ"),
         lon_dep: float = Query(..., description="Longitude gare départ"),
 ):
-    """Retourne les POI proches des gares (appels Overpass, peut être lent)."""
-    hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1200)
-    time.sleep(1)
-    stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=800)
-    time.sleep(1)
-    activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=1200)
-    time.sleep(1)
-    parkings_proches = get_parkings_near(lat_dep, lon_dep, radius_m=800)
-
+    """Retourne les POI proches des gares (requête Overpass unique)."""
+    hotels, bikes, activities, parkings = get_all_poi(lat_arr, lon_arr, lat_dep, lon_dep)
     return {
-        "hotels_proches": hotels_proches,
-        "stations_velo_proches": stations_velo_proches,
-        "activites_proches": activites_proches,
-        "parkings_proches": parkings_proches,
+        "hotels_proches": hotels,
+        "stations_velo_proches": bikes,
+        "activites_proches": activities,
+        "parkings_proches": parkings,
     }
 
 

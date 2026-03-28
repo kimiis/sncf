@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
-import { FaUser, FaHeart, FaHistory, FaMoon, FaSun, FaSignOutAlt, FaTrain, FaMapMarkerAlt, FaClock, FaLeaf, FaEdit, FaTimes, FaTrophy } from "react-icons/fa";
+import { LuUser, LuHeart, LuHistory, LuMoon, LuSun, LuLogOut, LuTrain, LuArrowRight, LuClock, LuLeaf, LuPencil, LuX, LuTrophy, LuSprout, LuTreePine, LuStar, LuLock, LuGlobe, LuCar } from "react-icons/lu";
 import api from "../api/axios";
 import "../styles/profil.css";
 
@@ -148,12 +148,12 @@ function Profil() {
     const nbTrajets = historiqueComplet.length;
 
     const BADGES = [
-        { id: "first", icon: "🌱", label: "Première graine", desc: "1er trajet recherché", unlocked: nbTrajets >= 1 },
-        { id: "eco5", icon: "🌿", label: "Éco-voyageur", desc: "5 trajets recherchés", unlocked: nbTrajets >= 5 },
-        { id: "co2_50", icon: "🌳", label: "Champion vert", desc: "50 kg CO₂ économisés", unlocked: totalCo2 >= 50 },
-        { id: "co2_100", icon: "🏆", label: "Ambassadeur", desc: "100 kg CO₂ économisés", unlocked: totalCo2 >= 100 },
-        { id: "traj10", icon: "🚂", label: "Grand voyageur", desc: "10 trajets recherchés", unlocked: nbTrajets >= 10 },
-        { id: "traj20", icon: "⭐", label: "Explorateur", desc: "20 trajets recherchés", unlocked: nbTrajets >= 20 },
+        { id: "first", Icon: LuSprout, label: "Première graine", desc: "1er trajet recherché", unlocked: nbTrajets >= 1 },
+        { id: "eco5", Icon: LuLeaf, label: "Éco-voyageur", desc: "5 trajets recherchés", unlocked: nbTrajets >= 5 },
+        { id: "co2_50", Icon: LuTreePine, label: "Champion vert", desc: "50 kg CO₂ économisés", unlocked: totalCo2 >= 50 },
+        { id: "co2_100", Icon: LuTrophy, label: "Ambassadeur", desc: "100 kg CO₂ économisés", unlocked: totalCo2 >= 100 },
+        { id: "traj10", Icon: LuTrain, label: "Grand voyageur", desc: "10 trajets recherchés", unlocked: nbTrajets >= 10 },
+        { id: "traj20", Icon: LuStar, label: "Explorateur", desc: "20 trajets recherchés", unlocked: nbTrajets >= 20 },
     ];
 
     return (
@@ -164,10 +164,10 @@ function Profil() {
                     <h1 className="profil-title">Mon Profil</h1>
                     <div className="header-actions">
                         <button className="theme-toggle" onClick={toggleDarkMode}>
-                            {darkMode ? <FaSun /> : <FaMoon />}
+                            {darkMode ? <LuSun /> : <LuMoon />}
                         </button>
                         <button className="logout-btn" onClick={handleLogout}>
-                            <FaSignOutAlt /> Déconnexion
+                            <LuLogOut /> Déconnexion
                         </button>
                     </div>
                 </div>
@@ -179,7 +179,7 @@ function Profil() {
                     {userData.photo_url ? (
                         <img src={userData.photo_url} alt="Avatar" />
                     ) : (
-                        <FaUser />
+                        <LuUser />
                     )}
                 </div>
                 <div className="user-info-header">
@@ -194,19 +194,19 @@ function Profil() {
                     className={`tab ${activeTab === "info" ? "active" : ""}`}
                     onClick={() => setActiveTab("info")}
                 >
-                    <FaUser /> Informations
+                    <LuUser /> Informations
                 </button>
                 <button
                     className={`tab ${activeTab === "favoris" ? "active" : ""}`}
                     onClick={() => setActiveTab("favoris")}
                 >
-                    <FaHeart /> Favoris
+                    <LuHeart /> Favoris
                 </button>
                 <button
                     className={`tab ${activeTab === "historique" ? "active" : ""}`}
                     onClick={() => setActiveTab("historique")}
                 >
-                    <FaHistory /> Historique
+                    <LuHistory /> Historique
                 </button>
             </nav>
 
@@ -251,7 +251,7 @@ function Profil() {
                             </div>
                         </div>
                         <button className="edit-profile-btn" onClick={openEdit}>
-                            <FaEdit /> Modifier mon profil
+                            <LuPencil /> Modifier mon profil
                         </button>
                     </div>
                 )}
@@ -265,11 +265,11 @@ function Profil() {
                                 {favoris.map((trajet) => (
                                     <div key={trajet.id} className="trajet-card">
                                         <div className="trajet-route">
-                                            <FaTrain className="train-icon" />
+                                            <LuTrain className="train-icon" />
                                             <div className="route-info">
                                                 <p className="route-cities">
                                                     <span>{trajet.from}</span>
-                                                    <FaMapMarkerAlt className="arrow-icon" />
+                                                    <LuArrowRight className="arrow-icon" />
                                                     <span>{trajet.to}</span>
                                                 </p>
                                                 <p className="route-date">Ajouté le {new Date(trajet.date).toLocaleDateString('fr-FR')}</p>
@@ -280,7 +280,7 @@ function Profil() {
                                                 Rechercher
                                             </button>
                                             <button className="remove-favori-btn" onClick={() => handleRemoveFavori(trajet.id)} title="Supprimer">
-                                                <FaTimes />
+                                                <LuX />
                                             </button>
                                         </div>
                                     </div>
@@ -302,11 +302,11 @@ function Profil() {
                                     <div key={trajet.id} className="trajet-card history">
                                         <div className="trajet-header">
                                             <div className="trajet-route">
-                                                <FaTrain className="train-icon" />
+                                                <LuTrain className="train-icon" />
                                                 <div className="route-info">
                                                     <p className="route-cities">
                                                         <span>{trajet.from}</span>
-                                                        <FaMapMarkerAlt className="arrow-icon" />
+                                                        <LuArrowRight className="arrow-icon" />
                                                         <span>{trajet.to}</span>
                                                     </p>
                                                     <p className="route-date">{new Date(trajet.date).toLocaleDateString('fr-FR')}</p>
@@ -315,12 +315,12 @@ function Profil() {
                                         </div>
                                         <div className="trajet-details">
                                             <div className="detail-item">
-                                                <FaClock />
+                                                <LuClock />
                                                 <span className="detail-label">Temps: </span>
                                                 <span className="detail-value">{trajet.duration}</span>
                                             </div>
                                             <div className="detail-item eco">
-                                                <FaLeaf />
+                                                <LuLeaf />
                                                 <span className="detail-label">CO² éco.: </span>
                                                 <span className="detail-value">{trajet.co2Saved}</span>
                                             </div>
@@ -344,7 +344,7 @@ function Profil() {
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Modifier mon profil</h3>
-                            <button className="modal-close" onClick={() => setEditOpen(false)}><FaTimes /></button>
+                            <button className="modal-close" onClick={() => setEditOpen(false)}><LuX /></button>
                         </div>
                         <form className="edit-form" onSubmit={handleEditSubmit}>
                             <div className="edit-form-grid">
@@ -387,7 +387,7 @@ function Profil() {
                 <div className="stats-grid">
                     <div className="stat-card">
                         <div className="stat-icon eco">
-                            <FaLeaf />
+                            <LuLeaf />
                         </div>
                         <div className="stat-content">
                             <p className="stat-value">
@@ -439,10 +439,10 @@ function Profil() {
                 <div className="badges-grid">
                     {BADGES.map((badge) => (
                         <div key={badge.id} className={`badge-card ${badge.unlocked ? "unlocked" : "locked"}`}>
-                            <span className="badge-icon">{badge.icon}</span>
+                            <span className="badge-icon"><badge.Icon size={28} /></span>
                             <p className="badge-label">{badge.label}</p>
                             <p className="badge-desc">{badge.desc}</p>
-                            {!badge.unlocked && <span className="badge-lock">🔒</span>}
+                            {!badge.unlocked && <span className="badge-lock"><LuLock size={14} /></span>}
                         </div>
                     ))}
                 </div>
@@ -472,17 +472,17 @@ function Profil() {
                     <h3 className="section-title">Mon impact CO₂</h3>
                     <div className="co2-impact-cards">
                         <div className="co2-impact-card">
-                            <span className="co2-impact-icon">🌍</span>
+                            <span className="co2-impact-icon"><LuGlobe size={28} /></span>
                             <span className="co2-impact-val">{totalCo2.toFixed(1)} kg</span>
                             <span className="co2-impact-label">CO₂ économisé au total</span>
                         </div>
                         <div className="co2-impact-card">
-                            <span className="co2-impact-icon">🌳</span>
+                            <span className="co2-impact-icon"><LuTreePine size={28} /></span>
                             <span className="co2-impact-val">{Math.round(totalCo2 / 21)}</span>
                             <span className="co2-impact-label">arbres équivalents</span>
                         </div>
                         <div className="co2-impact-card">
-                            <span className="co2-impact-icon">🚗</span>
+                            <span className="co2-impact-icon"><LuCar size={28} /></span>
                             <span className="co2-impact-val">{Math.round(totalCo2 / 0.122)} km</span>
                             <span className="co2-impact-label">km de voiture évités</span>
                         </div>
@@ -493,7 +493,7 @@ function Profil() {
             {/* Leaderboard */}
             {leaderboard.length > 0 && (
                 <section className="leaderboard-section">
-                    <h3 className="section-title"><FaTrophy /> Classement communauté</h3>
+                    <h3 className="section-title"><LuTrophy /> Classement communauté</h3>
                     <div className="leaderboard-list">
                         {leaderboard.map((user) => (
                             <div key={user.rank} className={`leaderboard-row ${user.rank <= 3 ? "top3" : ""}`}>
@@ -501,7 +501,7 @@ function Profil() {
                                     {user.rank === 1 ? "🥇" : user.rank === 2 ? "🥈" : user.rank === 3 ? "🥉" : `#${user.rank}`}
                                 </span>
                                 <span className="lb-name">{user.nom}</span>
-                                <span className="lb-co2">{user.co2_economise_kg} kg <FaLeaf className="leaf-icon" /></span>
+                                <span className="lb-co2">{user.co2_economise_kg} kg <LuLeaf className="leaf-icon" /></span>
                             </div>
                         ))}
                     </div>

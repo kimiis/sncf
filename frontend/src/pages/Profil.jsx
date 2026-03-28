@@ -401,7 +401,7 @@ function Profil() {
                     </div>
                     <div className="stat-card">
                         <div className="stat-icon train">
-                            <FaTrain />
+                            <LuTrain />
                         </div>
                         <div className="stat-content">
                             <p className="stat-value">{historiqueComplet.length}</p>
@@ -410,7 +410,7 @@ function Profil() {
                     </div>
                     <div className="stat-card">
                         <div className="stat-icon time">
-                            <FaClock />
+                            <LuClock />
                         </div>
                         <div className="stat-content">
                             <p className="stat-value">

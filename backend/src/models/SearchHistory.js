@@ -11,7 +11,7 @@ const SearchHistory = sequelize.define("SearchHistory", {
     gare_depart: DataTypes.STRING(100),
     gare_arrivee: DataTypes.STRING(100),
     date_recherche: DataTypes.DATEONLY,
-    type_train: DataTypes.STRING(50),
+    type_train: DataTypes.TEXT,
     created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,

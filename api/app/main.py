@@ -777,8 +777,11 @@ def trajet_poi(
 ):
     """Retourne les POI proches des gares (appels Overpass, peut être lent)."""
     hotels_proches = get_hotels_near(lat_arr, lon_arr, radius_m=1200)
+    time.sleep(1)
     stations_velo_proches = get_bike_stations_near(lat_arr, lon_arr, radius_m=800)
+    time.sleep(1)
     activites_proches = get_activities_near(lat_arr, lon_arr, radius_m=1200)
+    time.sleep(1)
     parkings_proches = get_parkings_near(lat_dep, lon_dep, radius_m=800)
 
     return {

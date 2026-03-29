@@ -814,7 +814,17 @@ def get_all_poi(lat_arr: float, lon_arr: float, lat_dep: float, lon_dep: float):
 
         if tourism in ("hotel", "hostel", "motel", "guest_house", "bed_and_breakfast"):
             dist = round(distance_haversine(lat_arr, lon_arr, el_lat, el_lon), 2)
-            hotels.append({"name": name or "Hôtel", "lat": el_lat, "lon": el_lon, "distance_km_from_station": dist})
+            stars_raw = tags.get("stars") or tags.get("tourism:stars")
+            try:
+                stars = int(float(stars_raw)) if stars_raw else None
+            except (ValueError, TypeError):
+                stars = None
+            hotels.append({
+                "name": name or "Hôtel",
+                "lat": el_lat, "lon": el_lon,
+                "distance_km_from_station": dist,
+                "stars": stars,
+            })
 
         elif amenity in ("bicycle_rental", "bicycle_parking"):
             dist = round(distance_haversine(lat_arr, lon_arr, el_lat, el_lon), 2)
@@ -828,7 +838,24 @@ def get_all_poi(lat_arr: float, lon_arr: float, lat_dep: float, lon_dep: float):
               leisure in ("park", "pitch", "sports_centre", "stadium", "swimming_pool") or
               amenity in ("restaurant", "cafe", "bar", "pub", "fast_food", "cinema", "theatre")):
             dist = round(distance_haversine(lat_arr, lon_arr, el_lat, el_lon), 2)
-            activities.append({"name": name or "Activité", "lat": el_lat, "lon": el_lon, "distance_km_from_station": dist, "category": tourism or leisure or amenity})
+            category = tourism or leisure or amenity
+            # Price range heuristic based on amenity type
+            price_heuristic = {
+                "fast_food": "€", "cafe": "€",
+                "bar": "€€", "pub": "€€",
+                "restaurant": "€€",
+                "cinema": None, "theatre": None,
+            }
+            price_range = tags.get("price_range") or price_heuristic.get(amenity)
+            cuisine = tags.get("cuisine", "").replace(";", ", ").replace("_", " ") or None
+            activities.append({
+                "name": name or "Activité",
+                "lat": el_lat, "lon": el_lon,
+                "distance_km_from_station": dist,
+                "category": category,
+                "price_range": price_range,
+                "cuisine": cuisine,
+            })
 
     hotels.sort(key=lambda x: x["distance_km_from_station"])
     bikes.sort(key=lambda x: x["distance_km_from_station"])

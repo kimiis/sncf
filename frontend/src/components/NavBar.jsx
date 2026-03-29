@@ -4,7 +4,7 @@ import { FaHome, FaUser, FaSignOutAlt, FaSignInAlt, FaCompass } from "react-icon
 import { jwtDecode } from "jwt-decode";
 import AuthModal from "./AuthModal";
 import "../styles/navBar.css";
-import railgoLogo from "../assets/railgo_logo.png";
+import railgoLogo from "../assets/railgo_logo.svg";
 
 const NavBar = () => {
     const navigate = useNavigate();

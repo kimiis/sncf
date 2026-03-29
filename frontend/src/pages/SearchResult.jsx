@@ -448,7 +448,11 @@ export default function SearchResult() {
 
                     {showHotels && hotels.map((h, i) => h.lat && h.lon && (
                         <Marker key={`hotel-${i}`} position={[h.lat, h.lon]} icon={hotelIcon}>
-                            <Popup><strong>{h.name}</strong><br />{h.distance_km_from_station} km de la gare</Popup>
+                            <Popup>
+                                <strong>{h.name}</strong><br />
+                                {h.stars && <>{("★").repeat(h.stars)}{"☆".repeat(Math.max(0, 5 - h.stars))}<br /></>}
+                                {h.distance_km_from_station} km de la gare
+                            </Popup>
                         </Marker>
                     ))}
 
@@ -467,6 +471,8 @@ export default function SearchResult() {
                             <Popup>
                                 <strong>{a.name || "Activité"}</strong><br />
                                 {a.distance_km_from_station} km · {a.category}
+                                {a.cuisine && <><br />🍽 {a.cuisine}</>}
+                                {a.price_range && <><br />{a.price_range}</>}
                             </Popup>
                         </Marker>
                     ))}
@@ -492,6 +498,11 @@ export default function SearchResult() {
                         {hotels.map((h, i) => (
                             <div key={i} className="sr-poi-card">
                                 <div className="sr-poi-card-name">{h.name}</div>
+                                {h.stars && (
+                                    <div className="sr-poi-card-stars">
+                                        {"★".repeat(h.stars)}{"☆".repeat(Math.max(0, 5 - h.stars))}
+                                    </div>
+                                )}
                                 <div className="sr-poi-card-dist"><FaMapMarkerAlt /> {h.distance_km_from_station} km</div>
                             </div>
                         ))}
@@ -524,7 +535,11 @@ export default function SearchResult() {
                             <div key={i} className="sr-poi-card">
                                 <div className="sr-poi-card-name">{a.name || "Activité"}</div>
                                 <div className="sr-poi-card-dist"><FaMapMarkerAlt /> {a.distance_km_from_station} km</div>
-                                <span className="sr-poi-card-tag">{a.category}</span>
+                                <div className="sr-poi-card-meta">
+                                    <span className="sr-poi-card-tag">{a.category}</span>
+                                    {a.cuisine && <span className="sr-poi-card-cuisine">{a.cuisine}</span>}
+                                    {a.price_range && <span className="sr-poi-card-price">{a.price_range}</span>}
+                                </div>
                             </div>
                         ))}
                     </div>

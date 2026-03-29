@@ -7,6 +7,6 @@
     min-height: 100vh;
     overflow-x: hidden; /* evite le scroll horizontal */
     overflow-y: auto; /* permet le scroll vertical */
-    background: #EDD9BE;
+    background: #FAEEDD;
     padding-bottom: 40px;
 }

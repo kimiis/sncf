@@ -137,7 +137,7 @@ export default function SearchResult() {
         api.get("/sncf/departures", { params: { from_city: fromCity, count: 12, ...(travelDate && { date: travelDate }) } })
             .then(({ data }) => setAllDepartures(data.departures || []))
             .catch(() => {});
-    }, [fromCity, toCity, isAuthenticated, userId]);
+    }, [fromCity, toCity, travelDate, isAuthenticated, userId]);
 
     useEffect(() => {
         if (!trajet) return;

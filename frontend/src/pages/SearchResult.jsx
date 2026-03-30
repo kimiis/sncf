@@ -74,6 +74,9 @@ export default function SearchResult() {
     const [alertPrixOpen, setAlertPrixOpen] = useState(false);
     const [alertPrixVal, setAlertPrixVal]   = useState("");
 
+    const [disruptions,    setDisruptions]    = useState([]);
+    const [showDisruptions, setShowDisruptions] = useState(true);
+
     const [showHotels,     setShowHotels]     = useState(false);
     const [showBikes,      setShowBikes]      = useState(false);
     const [showActivities, setShowActivities] = useState(false);
@@ -125,6 +128,11 @@ export default function SearchResult() {
             }
         };
         fetchTrajet();
+
+        // Perturbations en parallèle
+        api.get("/sncf/disruptions", { params: { from_city: fromCity } })
+            .then(({ data }) => setDisruptions(data.disruptions || []))
+            .catch(() => {});
     }, [fromCity, toCity, isAuthenticated, userId]);
 
     useEffect(() => {
@@ -234,6 +242,24 @@ export default function SearchResult() {
                     <ShareButton trajet={trajet} />
                 </div>
             </section>
+
+            {/* ── PERTURBATIONS ── */}
+            {disruptions.length > 0 && showDisruptions && (
+                <div className="sr-disruptions">
+                    <div className="sr-disruptions-header">
+                        <span className="sr-disruptions-title">⚠️ Perturbations à {fromCity}</span>
+                        <button className="sr-disruptions-close" onClick={() => setShowDisruptions(false)}>✕</button>
+                    </div>
+                    {disruptions.map((d, i) => (
+                        <div key={i} className="sr-disruption-item">
+                            <span className={`sr-disruption-badge sr-disruption-${d.severity}`}>
+                                {d.cause || d.severity}
+                            </span>
+                            <span className="sr-disruption-msg">{d.message}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* ── STATS CARD ── */}
             <div className="sr-stats-card">

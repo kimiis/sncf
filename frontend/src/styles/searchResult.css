@@ -545,6 +545,65 @@
     text-transform: capitalize;
 }
 
+/* ── DISRUPTIONS BANNER ──────────────────────── */
+.sr-disruptions {
+    margin: 0 1rem 1rem;
+    background: #FFF8E7;
+    border: 1.5px solid #E8A020;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+}
+
+.sr-disruptions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.sr-disruptions-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #9B6000;
+}
+
+.sr-disruptions-close {
+    background: none;
+    border: none;
+    color: #9B6000;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.sr-disruption-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.sr-disruption-badge {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    background: #F5E8D0;
+    color: #9B6000;
+}
+
+.sr-disruption-badge.sr-disruption-blocking { background: #FDDCDC; color: #C0392B; }
+.sr-disruption-badge.sr-disruption-significant_delays { background: #FFF0CC; color: #9B6000; }
+
+.sr-disruption-msg {
+    font-size: 0.82rem;
+    color: #6B4500;
+    line-height: 1.4;
+}
+
 /* ── SHARE BUTTON ────────────────────────────── */
 .share-btn {
     display: flex;

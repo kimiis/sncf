@@ -3,7 +3,7 @@ const axios = require("axios");
 const router = express.Router();
 
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:9000";
-const TIMEOUT = 10000; // 10 secondes
+const TIMEOUT = 5000; // 5 secondes
 
 // Proxy vers FastAPI - Autocomplete
 router.get("/autocomplete", async (req, res) => {
@@ -94,7 +94,7 @@ router.get("/gare-proche", async (req, res) => {
 router.get("/destinations", async (req, res) => {
     try {
         const response = await axios.get(`${FASTAPI_URL}/sncf/destinations`, {
-            timeout: TIMEOUT,
+            timeout: 30000,
         });
         res.json(response.data);
     } catch (error) {
@@ -104,6 +104,34 @@ router.get("/destinations", async (req, res) => {
         } else {
             res.status(500).json({ error: "Erreur lors de la récupération des destinations" });
         }
+    }
+});
+
+// Perturbations trafic (Navitia)
+router.get("/disruptions", async (req, res) => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/disruptions`, {
+            params: req.query,
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Erreur disruptions:", error.code || error.message);
+        res.status(500).json({ disruptions: [] });
+    }
+});
+
+// Isochrones (Navitia)
+router.get("/isochrones", async (req, res) => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/isochrones`, {
+            params: req.query,
+            timeout: 25000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Erreur isochrones:", error.code || error.message);
+        res.status(500).json({ geojson: null });
     }
 });
 

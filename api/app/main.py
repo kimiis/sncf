@@ -291,7 +291,23 @@ def get_gares():
 
 @app.get("/gare-proche")
 def gare_proche(lat: float = Query(...), lon: float = Query(...)):
-    """Retourne la gare la plus proche des coordonnées GPS données."""
+    """Retourne la gare la plus proche — Navitia en priorité, Excel en fallback."""
+    try:
+        resp = requests.get(
+            "https://api.sncf.com/v1/coverage/sncf/places_nearby",
+            params={"lon": lon, "lat": lat, "type[]": "stop_area", "count": 1, "distance": 5000},
+            headers=headers,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            places = resp.json().get("places_nearby", [])
+            if places:
+                name = places[0]["name"].split(" (")[0].strip()
+                dist_m = places[0].get("distance", 0)
+                return {"gare": name, "distance_km": round(dist_m / 1000, 1)}
+    except Exception as e:
+        print(f"[NAVITIA] gare-proche error: {e}")
+    # Fallback Excel
     best_name = None
     best_dist = float("inf")
     for _, row in df_gares.dropna(subset=["LIBELLE", "Geo Point"]).iterrows():
@@ -311,17 +327,104 @@ def gare_proche(lat: float = Query(...), lon: float = Query(...)):
 
 @app.get("/autocomplete")
 def autocomplete(q: str = ""):
-    # print(f"[DEBUG] autocomplete appelé avec q={q}")
-    # print(f"[DEBUG] df_gares shape: {df_gares.shape}")
+    """Autocomplétion gares — Navitia /places en priorité, Excel en fallback."""
+    if not q or len(q) < 2:
+        return []
+    try:
+        resp = requests.get(
+            "https://api.sncf.com/v1/coverage/sncf/places",
+            params={"q": q, "type[]": "stop_area", "count": 10},
+            headers=headers,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            places = resp.json().get("places", [])
+            results = []
+            for p in places:
+                if p.get("embedded_type") == "stop_area":
+                    name = p["name"].split(" (")[0].strip()
+                    if name and name not in results:
+                        results.append(name)
+            if results:
+                return results[:10]
+    except Exception as e:
+        print(f"[NAVITIA] autocomplete error: {e}")
+    # Fallback Excel
     q_lower = q.lower()
-    # print(f"[DEBUG] Recherche en cours...")
-    resultats = [
-        gare
-        for gare in df_gares["LIBELLE"].dropna().unique()
-        if q_lower in gare.lower()
-    ]
-    # print(f"[DEBUG] {len(resultats)} résultats trouvés")
-    return resultats[:10]
+    return [g for g in df_gares["LIBELLE"].dropna().unique() if q_lower in g.lower()][:10]
+
+
+@app.get("/disruptions")
+def get_disruptions(from_city: str = Query(...)):
+    """Perturbations actives sur la gare de départ via Navitia."""
+    from_code = get_code_uic(from_city)
+    if not from_code:
+        return {"disruptions": []}
+    try:
+        resp = requests.get(
+            f"https://api.sncf.com/v1/coverage/sncf/stop_areas/stop_area:SNCF:{from_code}/disruptions",
+            headers=headers,
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            return {"disruptions": []}
+        disruptions_raw = resp.json().get("disruptions", [])
+        disruptions = []
+        for d in disruptions_raw[:5]:
+            severity = d.get("severity", {}).get("name", "unknown")
+            messages = [m["text"] for m in d.get("messages", []) if m.get("text")]
+            disruptions.append({
+                "id": d.get("id", ""),
+                "severity": severity,
+                "cause": d.get("cause", ""),
+                "message": messages[0] if messages else "Perturbation en cours",
+            })
+        return {"disruptions": disruptions}
+    except Exception as e:
+        print(f"[NAVITIA] disruptions error: {e}")
+        return {"disruptions": []}
+
+
+isochrone_cache = {}
+
+@app.get("/isochrones")
+def get_isochrones(from_city: str = Query(...), max_duration: int = Query(7200)):
+    """Zone atteignable depuis une gare en X secondes — Navitia isochrones."""
+    cache_key = f"iso_{from_city}_{max_duration}"
+    now = time.time()
+    if cache_key in isochrone_cache:
+        cached_data, cached_time = isochrone_cache[cache_key]
+        if now - cached_time < 1800:  # cache 30 min
+            return cached_data
+
+    from_code = get_code_uic(from_city)
+    if not from_code:
+        raise HTTPException(status_code=404, detail="Gare non trouvée")
+    try:
+        resp = requests.get(
+            "https://api.sncf.com/v1/coverage/sncf/isochrones",
+            params={
+                "from": f"stop_area:SNCF:{from_code}",
+                "max_duration": max_duration,
+                "datetime": datetime.now().strftime("%Y%m%dT%H%M%S"),
+            },
+            headers=headers,
+            timeout=20,
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="Erreur Navitia isochrones")
+        data = resp.json()
+        isochrones = data.get("isochrones", [])
+        if not isochrones:
+            return {"geojson": None}
+        result = {"geojson": isochrones[0].get("geojson")}
+        isochrone_cache[cache_key] = (result, now)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[NAVITIA] isochrones error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

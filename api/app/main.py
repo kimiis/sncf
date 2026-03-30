@@ -385,15 +385,22 @@ def autocomplete(q: str = ""):
 
 
 @app.get("/departures")
-def get_departures(from_city: str = Query(...), count: int = Query(10)):
-    """Tableau de départs en temps réel depuis une gare — Navitia /departures."""
+def get_departures(from_city: str = Query(...), count: int = Query(10), date: str = Query(None)):
+    """Tableau de départs depuis une gare — temps réel si pas de date, sinon jour choisi."""
     from_code = get_code_uic(from_city)
     if not from_code:
         return {"departures": []}
+    params_req = {"count": count, "data_freshness": "realtime"}
+    if date:
+        try:
+            params_req["from_datetime"] = date.replace("-", "") + "T080000"
+            params_req["data_freshness"] = "base_schedule"
+        except Exception:
+            pass
     try:
         resp = requests.get(
             f"https://api.sncf.com/v1/coverage/sncf/stop_areas/stop_area:SNCF:{from_code}/departures",
-            params={"count": count, "data_freshness": "realtime"},
+            params=params_req,
             headers=headers,
             timeout=8,
         )
@@ -605,12 +612,20 @@ def estime_co2_avion(distance_km: float):
     return 0.255 * distance_km
 
 
-def get_full_journey(from_code: int, to_code: int):
-    now = datetime.now().strftime("%Y%m%dT%H%M%S")
+def get_full_journey(from_code: int, to_code: int, travel_date: str = None):
+    """travel_date : format YYYY-MM-DD (input HTML date). Si absent, utilise maintenant."""
+    if travel_date:
+        try:
+            # "2026-03-30" → "20260330T080000" (départ à 8h par défaut)
+            navitia_dt = travel_date.replace("-", "") + "T080000"
+        except Exception:
+            navitia_dt = datetime.now().strftime("%Y%m%dT%H%M%S")
+    else:
+        navitia_dt = datetime.now().strftime("%Y%m%dT%H%M%S")
     params = {
         "from": f"stop_area:SNCF:{from_code}",
         "to": f"stop_area:SNCF:{to_code}",
-        "datetime": now,
+        "datetime": navitia_dt,
         "count": 5,
     }
     response = requests.get(
@@ -883,6 +898,7 @@ def get_activities_near(
 def trajet(
         from_city: str = Query(..., description="Nom gare départ"),
         to_city: str = Query(..., description="Nom gare arrivée"),
+        date: str = Query(None, description="Date de voyage YYYY-MM-DD"),
 ):
     """Retourne les infos du trajet (prix, CO2, durée, coords) sans appels Overpass."""
     from_code = None
@@ -922,7 +938,7 @@ def trajet(
 
         # Journey API SNCF
         try:
-            journey, journeys_list = get_full_journey(from_code, to_code)
+            journey, journeys_list = get_full_journey(from_code, to_code, date)
         except Exception:
             journey, journeys_list = None, []
 

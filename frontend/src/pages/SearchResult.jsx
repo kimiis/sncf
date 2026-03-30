@@ -93,7 +93,7 @@ export default function SearchResult() {
         const fetchTrajet = async () => {
             try {
                 const { data } = await api.get("/sncf/trajet", {
-                    params: { from_city: fromCity, to_city: toCity },
+                    params: { from_city: fromCity, to_city: toCity, ...(travelDate && { date: travelDate }) },
                 });
                 setTrajet(data);
 
@@ -134,7 +134,7 @@ export default function SearchResult() {
         api.get("/sncf/disruptions", { params: { from_city: fromCity } })
             .then(({ data }) => setDisruptions(data.disruptions || []))
             .catch(() => {});
-        api.get("/sncf/departures", { params: { from_city: fromCity, count: 12 } })
+        api.get("/sncf/departures", { params: { from_city: fromCity, count: 12, ...(travelDate && { date: travelDate }) } })
             .then(({ data }) => setAllDepartures(data.departures || []))
             .catch(() => {});
     }, [fromCity, toCity, isAuthenticated, userId]);

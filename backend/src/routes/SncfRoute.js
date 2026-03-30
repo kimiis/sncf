@@ -121,17 +121,17 @@ router.get("/disruptions", async (req, res) => {
     }
 });
 
-// Isochrones (Navitia)
-router.get("/isochrones", async (req, res) => {
+// Destinations atteignables depuis une gare (basé sur distances Excel SNCF)
+router.get("/reachable", async (req, res) => {
     try {
-        const response = await axios.get(`${FASTAPI_URL}/isochrones`, {
+        const response = await axios.get(`${FASTAPI_URL}/reachable`, {
             params: req.query,
-            timeout: 25000,
+            timeout: 15000,
         });
         res.json(response.data);
     } catch (error) {
-        console.error("Erreur isochrones:", error.code || error.message);
-        res.status(500).json({ geojson: null });
+        console.error("Erreur reachable:", error.code || error.message);
+        res.status(500).json({ stations: [] });
     }
 });
 

@@ -385,46 +385,80 @@ def get_disruptions(from_city: str = Query(...)):
         return {"disruptions": []}
 
 
-isochrone_cache = {}
+reachable_cache = {}
 
-@app.get("/isochrones")
-def get_isochrones(from_city: str = Query(...), max_duration: int = Query(7200)):
-    """Zone atteignable depuis une gare en X secondes — Navitia isochrones."""
-    cache_key = f"iso_{from_city}_{max_duration}"
+AVG_TRAIN_SPEED_KMH = 200  # vitesse moyenne TGV intercités
+
+@app.get("/reachable")
+def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
+    """
+    Destinations atteignables depuis une gare en moins de max_duration secondes.
+    Utilise les distances réelles du fichier CO2 SNCF + vitesse moyenne train.
+    Retourne une liste de {name, lat, lon, distance_km, duree_min} triée par durée.
+    """
+    cache_key = f"reachable_{from_city}_{max_duration}"
     now = time.time()
-    if cache_key in isochrone_cache:
-        cached_data, cached_time = isochrone_cache[cache_key]
-        if now - cached_time < 1800:  # cache 30 min
+    if cache_key in reachable_cache:
+        cached_data, cached_time = reachable_cache[cache_key]
+        if now - cached_time < 1800:
             return cached_data
 
     from_code = get_code_uic(from_city)
     if not from_code:
         raise HTTPException(status_code=404, detail="Gare non trouvée")
-    try:
-        resp = requests.get(
-            "https://api.sncf.com/v1/coverage/sncf/isochrones",
-            params={
-                "from": f"stop_area:SNCF:{from_code}",
-                "max_duration": max_duration,
-                "datetime": datetime.now().strftime("%Y%m%dT%H%M%S"),
-            },
-            headers=headers,
-            timeout=20,
-        )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="Erreur Navitia isochrones")
-        data = resp.json()
-        isochrones = data.get("isochrones", [])
-        if not isochrones:
-            return {"geojson": None}
-        result = {"geojson": isochrones[0].get("geojson")}
-        isochrone_cache[cache_key] = (result, now)
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[NAVITIA] isochrones error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
+    max_duration_h = max_duration / 3600
+    max_distance_km = AVG_TRAIN_SPEED_KMH * max_duration_h
+
+    # Filtrer les trajets depuis cette gare dans le fichier CO2
+    lignes = df_co2[df_co2["Origine_uic"] == from_code].copy()
+
+    results = []
+    seen = set()
+    for _, row in lignes.iterrows():
+        dest_uic = int(row["Destination_uic"])
+        dist = row.get("Distance entre les gares")
+        if dist is None or pd.isnull(dist) or float(dist) > max_distance_km:
+            continue
+        dist = float(dist)
+
+        # Coordonnées de la destination
+        lat, lon = get_coords(dest_uic)
+        if lat is None or lon is None:
+            continue
+
+        # Nom de la gare destination
+        dest_name_row = df_gares.loc[df_gares["CODE_UIC"] == dest_uic, "LIBELLE"]
+        if dest_name_row.empty:
+            continue
+        dest_name = dest_name_row.values[0]
+
+        if dest_name in seen or dest_name.lower() == from_city.lower():
+            continue
+        seen.add(dest_name)
+
+        duree_min = round((dist / AVG_TRAIN_SPEED_KMH) * 60)
+        # Couleur par tranche de temps
+        if duree_min <= 60:
+            color = "green"
+        elif duree_min <= 120:
+            color = "orange"
+        else:
+            color = "red"
+
+        results.append({
+            "name": dest_name,
+            "lat": lat,
+            "lon": lon,
+            "distance_km": round(dist),
+            "duree_min": duree_min,
+            "color": color,
+        })
+
+    results.sort(key=lambda x: x["duree_min"])
+    result = {"stations": results[:80]}
+    reachable_cache[cache_key] = (result, now)
+    return result
 
 
 

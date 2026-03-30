@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaTrain, FaLeaf, FaMapMarkedAlt } from "react-icons/fa";
-import { MapContainer, TileLayer, Polygon } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api/axios";
 import "../styles/inspiration.css";
@@ -15,6 +15,18 @@ const TAGS_FILTERS = [
     { key: "nature", label: "Nature" },
 ];
 
+const COLOR_MAP = { green: "#2D5443", orange: "#E8A020", red: "#A6706A" };
+
+function FitBounds({ stations }) {
+    const map = useMap();
+    useEffect(() => {
+        if (!stations || stations.length === 0) return;
+        const bounds = stations.map(s => [s.lat, s.lon]);
+        map.fitBounds(bounds, { padding: [30, 30] });
+    }, [stations, map]);
+    return null;
+}
+
 export default function Inspiration() {
     const navigate = useNavigate();
     const [destinations, setDestinations] = useState([]);
@@ -23,10 +35,10 @@ export default function Inspiration() {
     const [fromCity, setFromCity] = useState("Paris");
     const [loading, setLoading] = useState(true);
 
-    const [isochroneDuration, setIsochroneDuration] = useState(7200);
-    const [isochroneGeo, setIsochroneGeo] = useState(null);
-    const [isochroneLoading, setIsochroneLoading] = useState(false);
-    const [isochroneError, setIsochroneError] = useState("");
+    const [reachDuration, setReachDuration] = useState(7200);
+    const [reachStations, setReachStations] = useState(null);
+    const [reachLoading, setReachLoading] = useState(false);
+    const [reachError, setReachError] = useState("");
 
     useEffect(() => {
         api.get("/sncf/destinations")
@@ -50,31 +62,18 @@ export default function Inspiration() {
         navigate(`/search?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(destName)}`);
     };
 
-    const fetchIsochrone = () => {
+    const fetchReachable = () => {
         if (!fromCity.trim()) return;
-        setIsochroneLoading(true);
-        setIsochroneError("");
-        setIsochroneGeo(null);
-        api.get("/sncf/isochrones", { params: { from_city: fromCity, max_duration: isochroneDuration } })
+        setReachLoading(true);
+        setReachError("");
+        setReachStations(null);
+        api.get("/sncf/reachable", { params: { from_city: fromCity, max_duration: reachDuration } })
             .then(({ data }) => {
-                if (data.geojson) setIsochroneGeo(data.geojson);
-                else setIsochroneError("Aucune donnée disponible pour cette gare.");
+                if (data.stations && data.stations.length > 0) setReachStations(data.stations);
+                else setReachError("Aucune destination trouvée. Vérifiez le nom de la gare.");
             })
-            .catch(() => setIsochroneError("Erreur lors du calcul. Vérifiez le nom de la gare."))
-            .finally(() => setIsochroneLoading(false));
-    };
-
-    // Convert GeoJSON [lon, lat] → Leaflet [lat, lon]
-    const geoJsonToLeaflet = (geojson) => {
-        if (!geojson) return null;
-        const coords = geojson.coordinates;
-        if (geojson.type === "Polygon") {
-            return coords[0].map(([lon, lat]) => [lat, lon]);
-        }
-        if (geojson.type === "MultiPolygon") {
-            return coords.map(polygon => polygon[0].map(([lon, lat]) => [lat, lon]));
-        }
-        return null;
+            .catch(() => setReachError("Erreur lors du calcul. Vérifiez le nom de la gare."))
+            .finally(() => setReachLoading(false));
     };
 
     return (
@@ -110,7 +109,7 @@ export default function Inspiration() {
                 ))}
             </div>
 
-            {/* ── ISOCHRONE ── */}
+            {/* ── JUSQU'OÙ PUIS-JE ALLER ── */}
             <section className="isochrone-section">
                 <h2 className="isochrone-title"><FaMapMarkedAlt /> Jusqu'où puis-je aller ?</h2>
                 <div className="isochrone-controls">
@@ -124,40 +123,62 @@ export default function Inspiration() {
                         {[3600, 7200, 10800].map(d => (
                             <button
                                 key={d}
-                                className={`isochrone-dur-btn ${isochroneDuration === d ? "active" : ""}`}
-                                onClick={() => setIsochroneDuration(d)}
+                                className={`isochrone-dur-btn ${reachDuration === d ? "active" : ""}`}
+                                onClick={() => setReachDuration(d)}
                             >
                                 {d / 3600}h
                             </button>
                         ))}
                     </div>
-                    <button className="isochrone-go-btn" onClick={fetchIsochrone} disabled={isochroneLoading}>
-                        {isochroneLoading ? "Calcul…" : "Voir la zone"}
+                    <button className="isochrone-go-btn" onClick={fetchReachable} disabled={reachLoading}>
+                        {reachLoading ? "Calcul…" : "Voir les gares"}
                     </button>
                 </div>
-                {isochroneError && <p className="isochrone-error">{isochroneError}</p>}
-                {isochroneGeo && (() => {
-                    const positions = geoJsonToLeaflet(isochroneGeo);
-                    if (!positions) return null;
-                    const isMulti = Array.isArray(positions[0]?.[0]);
-                    return (
+
+                {reachError && <p className="isochrone-error">{reachError}</p>}
+
+                {reachStations && (
+                    <>
+                        <div className="isochrone-legend-row">
+                            <span className="isochrone-dot" style={{ background: COLOR_MAP.green }} /> &lt; 1h
+                            <span className="isochrone-dot" style={{ background: COLOR_MAP.orange }} /> 1h – 2h
+                            <span className="isochrone-dot" style={{ background: COLOR_MAP.red }} /> 2h – {reachDuration / 3600}h
+                            <span className="isochrone-count">{reachStations.length} gares</span>
+                        </div>
                         <div className="isochrone-map">
-                            <MapContainer center={[46.5, 2.5]} zoom={5} style={{ height: "380px", width: "100%" }} scrollWheelZoom={false}>
+                            <MapContainer
+                                center={[46.5, 2.5]}
+                                zoom={5}
+                                style={{ height: "400px", width: "100%" }}
+                                scrollWheelZoom={false}
+                            >
                                 <TileLayer
                                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 />
-                                {isMulti
-                                    ? positions.map((p, i) => (
-                                        <Polygon key={i} positions={p} pathOptions={{ color: "#2D5443", fillColor: "#8B9E6A", fillOpacity: 0.35 }} />
-                                    ))
-                                    : <Polygon positions={positions} pathOptions={{ color: "#2D5443", fillColor: "#8B9E6A", fillOpacity: 0.35 }} />
-                                }
+                                <FitBounds stations={reachStations} />
+                                {reachStations.map((s, i) => (
+                                    <CircleMarker
+                                        key={i}
+                                        center={[s.lat, s.lon]}
+                                        radius={5}
+                                        pathOptions={{
+                                            color: COLOR_MAP[s.color],
+                                            fillColor: COLOR_MAP[s.color],
+                                            fillOpacity: 0.8,
+                                            weight: 1,
+                                        }}
+                                    >
+                                        <Popup>
+                                            <strong>{s.name}</strong><br />
+                                            ~{s.duree_min} min · {s.distance_km} km
+                                        </Popup>
+                                    </CircleMarker>
+                                ))}
                             </MapContainer>
-                            <p className="isochrone-legend">Zone verte = destinations accessibles en {isochroneDuration / 3600}h depuis {fromCity}</p>
                         </div>
-                    );
-                })()}
+                    </>
+                )}
             </section>
 
             {/* Grille destinations */}

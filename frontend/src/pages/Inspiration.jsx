@@ -39,6 +39,7 @@ export default function Inspiration() {
     const [reachStations, setReachStations] = useState(null);
     const [reachLoading, setReachLoading] = useState(false);
     const [reachError, setReachError] = useState("");
+    const [reachSuggestions, setReachSuggestions] = useState([]);
 
     useEffect(() => {
         api.get("/sncf/destinations")
@@ -62,8 +63,24 @@ export default function Inspiration() {
         navigate(`/search?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(destName)}`);
     };
 
+    const handleReachInput = async (value) => {
+        setFromCity(value);
+        setReachStations(null);
+        if (!value || value.length < 2) { setReachSuggestions([]); return; }
+        try {
+            const { data } = await api.get(`/sncf/autocomplete?q=${value}`);
+            setReachSuggestions(Array.isArray(data) ? data.slice(0, 6) : []);
+        } catch { setReachSuggestions([]); }
+    };
+
+    const handleReachSelect = (name) => {
+        setFromCity(name);
+        setReachSuggestions([]);
+    };
+
     const fetchReachable = () => {
         if (!fromCity.trim()) return;
+        setReachSuggestions([]);
         setReachLoading(true);
         setReachError("");
         setReachStations(null);
@@ -113,12 +130,22 @@ export default function Inspiration() {
             <section className="isochrone-section">
                 <h2 className="isochrone-title"><FaMapMarkedAlt /> Jusqu'où puis-je aller ?</h2>
                 <div className="isochrone-controls">
-                    <input
-                        className="isochrone-input"
-                        value={fromCity}
-                        onChange={(e) => setFromCity(e.target.value)}
-                        placeholder="Gare de départ"
-                    />
+                    <div className="isochrone-input-wrapper">
+                        <input
+                            className="isochrone-input"
+                            value={fromCity}
+                            onChange={(e) => handleReachInput(e.target.value)}
+                            placeholder="Gare de départ"
+                            autoComplete="off"
+                        />
+                        {reachSuggestions.length > 0 && (
+                            <ul className="isochrone-suggestions">
+                                {reachSuggestions.map((s, i) => (
+                                    <li key={i} onClick={() => handleReachSelect(s)}>{s}</li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                     <div className="isochrone-durations">
                         {[3600, 7200, 10800].map(d => (
                             <button

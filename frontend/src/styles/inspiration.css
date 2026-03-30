@@ -212,9 +212,14 @@
     margin-bottom: 1rem;
 }
 
-.isochrone-input {
+.isochrone-input-wrapper {
     flex: 1;
     min-width: 140px;
+    position: relative;
+}
+
+.isochrone-input {
+    width: 100%;
     padding: 0.55rem 0.9rem;
     border: 1.5px solid #D4C4A8;
     border-radius: 10px;
@@ -222,7 +227,36 @@
     font-family: "Poppins", sans-serif;
     color: #2D5443;
     background: #FAEEDD;
+    box-sizing: border-box;
 }
+
+.isochrone-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #FAEEDD;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 10px;
+    z-index: 100;
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0;
+    box-shadow: 0 6px 18px rgba(45,84,67,0.12);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.isochrone-suggestions li {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    color: #2D5443;
+    font-size: 0.88rem;
+    transition: background 0.15s;
+}
+.isochrone-suggestions li:hover { background: #F5E8D0; }
+.isochrone-suggestions li:first-child { border-radius: 10px 10px 0 0; }
+.isochrone-suggestions li:last-child { border-radius: 0 0 10px 10px; }
 
 .isochrone-durations {
     display: flex;

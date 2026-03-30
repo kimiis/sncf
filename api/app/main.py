@@ -392,9 +392,9 @@ AVG_TRAIN_SPEED_KMH = 200  # vitesse moyenne TGV intercités
 @app.get("/reachable")
 def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
     """
-    Destinations atteignables depuis une gare en moins de max_duration secondes.
-    Utilise les distances réelles du fichier CO2 SNCF + vitesse moyenne train.
-    Retourne une liste de {name, lat, lon, distance_km, duree_min} triée par durée.
+    Gares atteignables depuis une ville en moins de max_duration secondes.
+    Utilise la distance Haversine sur toutes les gares + vitesse moyenne 200 km/h.
+    Ne dépend pas des paires de l'Excel CO2 — couvre toutes les gares connues.
     """
     cache_key = f"reachable_{from_city}_{max_duration}"
     now = time.time()
@@ -407,38 +407,53 @@ def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
     if not from_code:
         raise HTTPException(status_code=404, detail="Gare non trouvée")
 
-    max_duration_h = max_duration / 3600
-    max_distance_km = AVG_TRAIN_SPEED_KMH * max_duration_h
+    lat_dep, lon_dep = get_coords(from_code)
+    if lat_dep is None:
+        raise HTTPException(status_code=404, detail="Coordonnées introuvables")
 
-    # Filtrer les trajets depuis cette gare dans le fichier CO2
-    lignes = df_co2[df_co2["Origine_uic"] == from_code].copy()
+    max_distance_km = AVG_TRAIN_SPEED_KMH * (max_duration / 3600)
+
+    # Récupérer les gares qui apparaissent dans le fichier tarif (gares commerciales)
+    gares_commerciales = set(
+        df_tarif["Gare destination - code UIC"].dropna().astype(int).tolist() +
+        df_tarif["Gare origine - code UIC"].dropna().astype(int).tolist()
+    )
 
     results = []
     seen = set()
-    for _, row in lignes.iterrows():
-        dest_uic = int(row["Destination_uic"])
-        dist = row.get("Distance entre les gares")
-        if dist is None or pd.isnull(dist) or float(dist) > max_distance_km:
-            continue
-        dist = float(dist)
 
-        # Coordonnées de la destination
-        lat, lon = get_coords(dest_uic)
-        if lat is None or lon is None:
+    for _, row in df_gares.dropna(subset=["LIBELLE", "Geo Point", "CODE_UIC"]).iterrows():
+        try:
+            dest_uic = int(row["CODE_UIC"])
+        except (ValueError, TypeError):
             continue
 
-        # Nom de la gare destination
-        dest_name_row = df_gares.loc[df_gares["CODE_UIC"] == dest_uic, "LIBELLE"]
-        if dest_name_row.empty:
+        if dest_uic == from_code:
             continue
-        dest_name = dest_name_row.values[0]
 
-        if dest_name in seen or dest_name.lower() == from_city.lower():
+        # Filtrer sur les gares commerciales (TGV/Intercités) pour éviter le bruit
+        if dest_uic not in gares_commerciales:
             continue
+
+        dest_name = row["LIBELLE"]
+        if dest_name in seen:
+            continue
+
+        geo = row["Geo Point"]
+        if not isinstance(geo, str) or "," not in geo:
+            continue
+        try:
+            g_lat, g_lon = [float(x.strip()) for x in geo.split(",")]
+        except (ValueError, TypeError):
+            continue
+
+        dist = distance_haversine(lat_dep, lon_dep, g_lat, g_lon)
+        if dist > max_distance_km or dist < 1:
+            continue
+
         seen.add(dest_name)
-
         duree_min = round((dist / AVG_TRAIN_SPEED_KMH) * 60)
-        # Couleur par tranche de temps
+
         if duree_min <= 60:
             color = "green"
         elif duree_min <= 120:
@@ -448,15 +463,15 @@ def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
 
         results.append({
             "name": dest_name,
-            "lat": lat,
-            "lon": lon,
+            "lat": g_lat,
+            "lon": g_lon,
             "distance_km": round(dist),
             "duree_min": duree_min,
             "color": color,
         })
 
     results.sort(key=lambda x: x["duree_min"])
-    result = {"stations": results[:80]}
+    result = {"stations": results[:120]}
     reachable_cache[cache_key] = (result, now)
     return result
 

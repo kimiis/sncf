@@ -302,9 +302,16 @@ def gare_proche(lat: float = Query(...), lon: float = Query(...)):
         if resp.status_code == 200:
             places = resp.json().get("places_nearby", [])
             if places:
-                name = places[0]["name"].split(" (")[0].strip()
+                navitia_id = places[0].get("id", "")
+                parts = navitia_id.split(":")
                 dist_m = places[0].get("distance", 0)
-                return {"gare": name, "distance_km": round(dist_m / 1000, 1)}
+                try:
+                    uic = int(parts[-1])
+                    row = df_gares.loc[df_gares["CODE_UIC"] == uic, "LIBELLE"]
+                    if not row.empty:
+                        return {"gare": row.values[0], "distance_km": round(dist_m / 1000, 1)}
+                except (ValueError, IndexError):
+                    pass
     except Exception as e:
         print(f"[NAVITIA] gare-proche error: {e}")
     # Fallback Excel
@@ -327,24 +334,47 @@ def gare_proche(lat: float = Query(...), lon: float = Query(...)):
 
 @app.get("/autocomplete")
 def autocomplete(q: str = ""):
-    """Autocomplétion gares — Navitia /places en priorité, Excel en fallback."""
+    """
+    Autocomplétion gares — Navitia /places en priorité.
+    Extrait le code UIC depuis l'ID Navitia (stop_area:SNCF:{uic}) et retourne
+    le nom canonique de df_gares pour garantir la compatibilité avec get_code_uic.
+    Fallback Excel si Navitia indisponible.
+    """
     if not q or len(q) < 2:
         return []
     try:
         resp = requests.get(
             "https://api.sncf.com/v1/coverage/sncf/places",
-            params={"q": q, "type[]": "stop_area", "count": 10},
+            params={"q": q, "type[]": "stop_area", "count": 15},
             headers=headers,
             timeout=5,
         )
         if resp.status_code == 200:
             places = resp.json().get("places", [])
             results = []
+            seen_uic = set()
             for p in places:
-                if p.get("embedded_type") == "stop_area":
-                    name = p["name"].split(" (")[0].strip()
-                    if name and name not in results:
-                        results.append(name)
+                if p.get("embedded_type") != "stop_area":
+                    continue
+                # Extraire UIC depuis "stop_area:SNCF:87394007"
+                navitia_id = p.get("id", "")
+                parts = navitia_id.split(":")
+                if len(parts) < 3:
+                    continue
+                try:
+                    uic = int(parts[-1])
+                except ValueError:
+                    continue
+                if uic in seen_uic:
+                    continue
+                seen_uic.add(uic)
+                # Récupérer le nom canonique depuis df_gares
+                row = df_gares.loc[df_gares["CODE_UIC"] == uic, "LIBELLE"]
+                if row.empty:
+                    continue
+                canonical = row.values[0]
+                if canonical not in results:
+                    results.append(canonical)
             if results:
                 return results[:10]
     except Exception as e:

@@ -389,12 +389,15 @@ reachable_cache = {}
 
 AVG_TRAIN_SPEED_KMH = 200  # vitesse moyenne TGV intercités
 
+RAIL_CORRECTION = 1.15  # les voies ferrées ≈ 15% plus longues que le vol d'oiseau
+
 @app.get("/reachable")
 def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
     """
     Gares atteignables depuis une ville en moins de max_duration secondes.
-    Utilise la distance Haversine sur toutes les gares + vitesse moyenne 200 km/h.
-    Ne dépend pas des paires de l'Excel CO2 — couvre toutes les gares connues.
+    Sources : destinations réelles depuis df_tarif (liaisons TGV connues),
+    distance estimée = Haversine × 1.15 / 200 km/h.
+    Cherche dans les deux sens (origine ET destination) pour couvrir tous les trajets.
     """
     cache_key = f"reachable_{from_city}_{max_duration}"
     now = time.time()
@@ -411,48 +414,46 @@ def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
     if lat_dep is None:
         raise HTTPException(status_code=404, detail="Coordonnées introuvables")
 
-    max_distance_km = AVG_TRAIN_SPEED_KMH * (max_duration / 3600)
+    max_duration_h = max_duration / 3600
 
-    # Récupérer les gares qui apparaissent dans le fichier tarif (gares commerciales)
-    gares_commerciales = set(
-        df_tarif["Gare destination - code UIC"].dropna().astype(int).tolist() +
-        df_tarif["Gare origine - code UIC"].dropna().astype(int).tolist()
-    )
+    # Destinations réelles depuis df_tarif — dans les deux sens
+    as_origin = df_tarif[df_tarif["Gare origine - code UIC"] == from_code][
+        ["Gare destination", "Gare destination - code UIC"]
+    ].rename(columns={"Gare destination": "name", "Gare destination - code UIC": "uic"})
+
+    as_dest = df_tarif[df_tarif["Gare destination - code UIC"] == from_code][
+        ["Gare origine", "Gare origine - code UIC"]
+    ].rename(columns={"Gare origine": "name", "Gare origine - code UIC": "uic"})
+
+    destinations = pd.concat([as_origin, as_dest], ignore_index=True).drop_duplicates(subset=["uic"])
 
     results = []
     seen = set()
 
-    for _, row in df_gares.dropna(subset=["LIBELLE", "Geo Point", "CODE_UIC"]).iterrows():
+    for _, row in destinations.iterrows():
+        dest_name = row["name"]
         try:
-            dest_uic = int(row["CODE_UIC"])
+            dest_uic = int(row["uic"])
         except (ValueError, TypeError):
             continue
 
-        if dest_uic == from_code:
+        if dest_uic == from_code or dest_name in seen:
             continue
 
-        # Filtrer sur les gares commerciales (TGV/Intercités) pour éviter le bruit
-        if dest_uic not in gares_commerciales:
+        g_lat, g_lon = get_coords(dest_uic)
+        if g_lat is None:
             continue
 
-        dest_name = row["LIBELLE"]
-        if dest_name in seen:
-            continue
+        # Distance estimée : Haversine × correction ferroviaire
+        haversine_km = distance_haversine(lat_dep, lon_dep, g_lat, g_lon)
+        dist_estimee = haversine_km * RAIL_CORRECTION
+        duree_h = dist_estimee / AVG_TRAIN_SPEED_KMH
 
-        geo = row["Geo Point"]
-        if not isinstance(geo, str) or "," not in geo:
-            continue
-        try:
-            g_lat, g_lon = [float(x.strip()) for x in geo.split(",")]
-        except (ValueError, TypeError):
-            continue
-
-        dist = distance_haversine(lat_dep, lon_dep, g_lat, g_lon)
-        if dist > max_distance_km or dist < 1:
+        if duree_h > max_duration_h:
             continue
 
         seen.add(dest_name)
-        duree_min = round((dist / AVG_TRAIN_SPEED_KMH) * 60)
+        duree_min = round(duree_h * 60)
 
         if duree_min <= 60:
             color = "green"
@@ -462,10 +463,10 @@ def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
             color = "red"
 
         results.append({
-            "name": dest_name,
+            "name": dest_name.title(),
             "lat": g_lat,
             "lon": g_lon,
-            "distance_km": round(dist),
+            "distance_km": round(dist_estimee),
             "duree_min": duree_min,
             "color": color,
         })

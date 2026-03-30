@@ -184,3 +184,152 @@
     color: #888;
     padding: 3rem;
 }
+
+/* ── ISOCHRONE ── */
+.isochrone-section {
+    margin: 0 1rem 2rem;
+    background: #fff;
+    border-radius: 20px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 16px rgba(45,84,67,0.09);
+}
+
+.isochrone-title {
+    font-family: "Oswald", sans-serif;
+    font-size: 1.2rem;
+    color: #2D5443;
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.isochrone-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.isochrone-input-wrapper {
+    flex: 1;
+    min-width: 140px;
+    position: relative;
+}
+
+.isochrone-input {
+    width: 100%;
+    padding: 0.55rem 0.9rem;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-family: "Poppins", sans-serif;
+    color: #2D5443;
+    background: #FAEEDD;
+    box-sizing: border-box;
+}
+
+.isochrone-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #FAEEDD;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 10px;
+    z-index: 100;
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0;
+    box-shadow: 0 6px 18px rgba(45,84,67,0.12);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.isochrone-suggestions li {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    color: #2D5443;
+    font-size: 0.88rem;
+    transition: background 0.15s;
+}
+.isochrone-suggestions li:hover { background: #F5E8D0; }
+.isochrone-suggestions li:first-child { border-radius: 10px 10px 0 0; }
+.isochrone-suggestions li:last-child { border-radius: 0 0 10px 10px; }
+
+.isochrone-durations {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.isochrone-dur-btn {
+    padding: 0.5rem 0.9rem;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 10px;
+    background: #FAEEDD;
+    color: #2D5443;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: "Poppins", sans-serif;
+}
+.isochrone-dur-btn.active, .isochrone-dur-btn:hover {
+    background: #2D5443;
+    color: white;
+    border-color: #2D5443;
+}
+
+.isochrone-go-btn {
+    padding: 0.55rem 1.2rem;
+    background: #A6706A;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: "Poppins", sans-serif;
+    white-space: nowrap;
+}
+.isochrone-go-btn:hover:not(:disabled) { background: #8F5E59; }
+.isochrone-go-btn:disabled { opacity: 0.6; cursor: wait; }
+
+.isochrone-error {
+    color: #C0392B;
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+}
+
+.isochrone-map {
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 0.75rem;
+}
+
+.isochrone-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: #2D5443;
+    margin-bottom: 0.75rem;
+}
+
+.isochrone-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.isochrone-count {
+    margin-left: auto;
+    font-weight: 700;
+    color: #8B9E6A;
+    font-size: 0.8rem;
+}

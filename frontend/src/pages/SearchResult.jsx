@@ -74,6 +74,10 @@ export default function SearchResult() {
     const [alertPrixOpen, setAlertPrixOpen] = useState(false);
     const [alertPrixVal, setAlertPrixVal]   = useState("");
 
+    const [disruptions,    setDisruptions]    = useState([]);
+    const [showDisruptions, setShowDisruptions] = useState(true);
+    const [allDepartures,  setAllDepartures]  = useState([]);
+
     const [showHotels,     setShowHotels]     = useState(false);
     const [showBikes,      setShowBikes]      = useState(false);
     const [showActivities, setShowActivities] = useState(false);
@@ -89,7 +93,7 @@ export default function SearchResult() {
         const fetchTrajet = async () => {
             try {
                 const { data } = await api.get("/sncf/trajet", {
-                    params: { from_city: fromCity, to_city: toCity },
+                    params: { from_city: fromCity, to_city: toCity, ...(travelDate && { date: travelDate }) },
                 });
                 setTrajet(data);
 
@@ -125,6 +129,14 @@ export default function SearchResult() {
             }
         };
         fetchTrajet();
+
+        // Perturbations + départs en parallèle
+        api.get("/sncf/disruptions", { params: { from_city: fromCity } })
+            .then(({ data }) => setDisruptions(data.disruptions || []))
+            .catch(() => {});
+        api.get("/sncf/departures", { params: { from_city: fromCity, count: 12, ...(travelDate && { date: travelDate }) } })
+            .then(({ data }) => setAllDepartures(data.departures || []))
+            .catch(() => {});
     }, [fromCity, toCity, isAuthenticated, userId]);
 
     useEffect(() => {
@@ -235,6 +247,24 @@ export default function SearchResult() {
                 </div>
             </section>
 
+            {/* ── PERTURBATIONS ── */}
+            {disruptions.length > 0 && showDisruptions && (
+                <div className="sr-disruptions">
+                    <div className="sr-disruptions-header">
+                        <span className="sr-disruptions-title">⚠️ Perturbations à {fromCity}</span>
+                        <button className="sr-disruptions-close" onClick={() => setShowDisruptions(false)}>✕</button>
+                    </div>
+                    {disruptions.map((d, i) => (
+                        <div key={i} className="sr-disruption-item">
+                            <span className={`sr-disruption-badge sr-disruption-${d.severity}`}>
+                                {d.cause || d.severity}
+                            </span>
+                            <span className="sr-disruption-msg">{d.message}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* ── STATS CARD ── */}
             <div className="sr-stats-card">
                 <div className="sr-stat">
@@ -333,6 +363,26 @@ export default function SearchResult() {
                                     <span className="sr-depart-chg">{dep.nb_changements} chgt</span>
                                 )}
                             </button>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* ── TABLEAU DE DÉPARTS GARE ── */}
+            {allDepartures.length > 0 && (
+                <section className="sr-card">
+                    <h2 className="sr-section-title">
+                        <FaTrain className="sr-section-icon" /> Tous les départs depuis {fromCity}
+                    </h2>
+                    <div className="sr-departures-table">
+                        {allDepartures.map((d, i) => (
+                            <div key={i} className="sr-departure-row">
+                                <span className="sr-dep-heure">{d.heure}</span>
+                                <span className="sr-dep-mode">{d.mode}</span>
+                                <span className="sr-dep-direction">{d.direction}</span>
+                                <span className="sr-dep-num">n°{d.train_number}</span>
+                                {d.realtime && <span className="sr-dep-rt">● live</span>}
+                            </div>
                         ))}
                     </div>
                 </section>

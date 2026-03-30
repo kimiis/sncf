@@ -291,7 +291,30 @@ def get_gares():
 
 @app.get("/gare-proche")
 def gare_proche(lat: float = Query(...), lon: float = Query(...)):
-    """Retourne la gare la plus proche des coordonnées GPS données."""
+    """Retourne la gare la plus proche — Navitia en priorité, Excel en fallback."""
+    try:
+        resp = requests.get(
+            "https://api.sncf.com/v1/coverage/sncf/places_nearby",
+            params={"lon": lon, "lat": lat, "type[]": "stop_area", "count": 1, "distance": 5000},
+            headers=headers,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            places = resp.json().get("places_nearby", [])
+            if places:
+                navitia_id = places[0].get("id", "")
+                parts = navitia_id.split(":")
+                dist_m = places[0].get("distance", 0)
+                try:
+                    uic = int(parts[-1])
+                    row = df_gares.loc[df_gares["CODE_UIC"] == uic, "LIBELLE"]
+                    if not row.empty:
+                        return {"gare": row.values[0], "distance_km": round(dist_m / 1000, 1)}
+                except (ValueError, IndexError):
+                    pass
+    except Exception as e:
+        print(f"[NAVITIA] gare-proche error: {e}")
+    # Fallback Excel
     best_name = None
     best_dist = float("inf")
     for _, row in df_gares.dropna(subset=["LIBELLE", "Geo Point"]).iterrows():
@@ -311,17 +334,221 @@ def gare_proche(lat: float = Query(...), lon: float = Query(...)):
 
 @app.get("/autocomplete")
 def autocomplete(q: str = ""):
-    # print(f"[DEBUG] autocomplete appelé avec q={q}")
-    # print(f"[DEBUG] df_gares shape: {df_gares.shape}")
+    """
+    Autocomplétion gares — Navitia /places en priorité.
+    Extrait le code UIC depuis l'ID Navitia (stop_area:SNCF:{uic}) et retourne
+    le nom canonique de df_gares pour garantir la compatibilité avec get_code_uic.
+    Fallback Excel si Navitia indisponible.
+    """
+    if not q or len(q) < 2:
+        return []
+    try:
+        resp = requests.get(
+            "https://api.sncf.com/v1/coverage/sncf/places",
+            params={"q": q, "type[]": "stop_area", "count": 15},
+            headers=headers,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            places = resp.json().get("places", [])
+            results = []
+            seen_uic = set()
+            for p in places:
+                if p.get("embedded_type") != "stop_area":
+                    continue
+                # Extraire UIC depuis "stop_area:SNCF:87394007"
+                navitia_id = p.get("id", "")
+                parts = navitia_id.split(":")
+                if len(parts) < 3:
+                    continue
+                try:
+                    uic = int(parts[-1])
+                except ValueError:
+                    continue
+                if uic in seen_uic:
+                    continue
+                seen_uic.add(uic)
+                # Récupérer le nom canonique depuis df_gares
+                row = df_gares.loc[df_gares["CODE_UIC"] == uic, "LIBELLE"]
+                if row.empty:
+                    continue
+                canonical = row.values[0]
+                if canonical not in results:
+                    results.append(canonical)
+            if results:
+                return results[:10]
+    except Exception as e:
+        print(f"[NAVITIA] autocomplete error: {e}")
+    # Fallback Excel
     q_lower = q.lower()
-    # print(f"[DEBUG] Recherche en cours...")
-    resultats = [
-        gare
-        for gare in df_gares["LIBELLE"].dropna().unique()
-        if q_lower in gare.lower()
-    ]
-    # print(f"[DEBUG] {len(resultats)} résultats trouvés")
-    return resultats[:10]
+    return [g for g in df_gares["LIBELLE"].dropna().unique() if q_lower in g.lower()][:10]
+
+
+@app.get("/departures")
+def get_departures(from_city: str = Query(...), count: int = Query(10), date: str = Query(None)):
+    """Tableau de départs depuis une gare — temps réel si pas de date, sinon jour choisi."""
+    from_code = get_code_uic(from_city)
+    if not from_code:
+        return {"departures": []}
+    params_req = {"count": count, "data_freshness": "realtime"}
+    if date:
+        try:
+            params_req["from_datetime"] = date.replace("-", "") + "T080000"
+            params_req["data_freshness"] = "base_schedule"
+        except Exception:
+            pass
+    try:
+        resp = requests.get(
+            f"https://api.sncf.com/v1/coverage/sncf/stop_areas/stop_area:SNCF:{from_code}/departures",
+            params=params_req,
+            headers=headers,
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            return {"departures": []}
+        raw = resp.json().get("departures", [])
+        departures = []
+        for d in raw:
+            sdt = d.get("stop_date_time", {})
+            info = d.get("display_informations", {})
+            dep_dt = sdt.get("departure_date_time", "")
+            is_realtime = sdt.get("data_freshness") == "realtime"
+            # Formater l'heure : "20260330T142300" → "14h23"
+            heure = f"{dep_dt[9:11]}h{dep_dt[11:13]}" if len(dep_dt) >= 13 else "—"
+            departures.append({
+                "heure": heure,
+                "direction": info.get("direction", ""),
+                "mode": info.get("commercial_mode", ""),
+                "train_number": info.get("headsign", ""),
+                "realtime": is_realtime,
+            })
+        return {"departures": departures}
+    except Exception as e:
+        print(f"[NAVITIA] departures error: {e}")
+        return {"departures": []}
+
+
+@app.get("/disruptions")
+def get_disruptions(from_city: str = Query(...)):
+    """Perturbations actives sur la gare de départ via Navitia."""
+    from_code = get_code_uic(from_city)
+    if not from_code:
+        return {"disruptions": []}
+    try:
+        resp = requests.get(
+            f"https://api.sncf.com/v1/coverage/sncf/stop_areas/stop_area:SNCF:{from_code}/disruptions",
+            headers=headers,
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            return {"disruptions": []}
+        disruptions_raw = resp.json().get("disruptions", [])
+        disruptions = []
+        for d in disruptions_raw[:5]:
+            severity = d.get("severity", {}).get("name", "unknown")
+            messages = [m["text"] for m in d.get("messages", []) if m.get("text")]
+            disruptions.append({
+                "id": d.get("id", ""),
+                "severity": severity,
+                "cause": d.get("cause", ""),
+                "message": messages[0] if messages else "Perturbation en cours",
+            })
+        return {"disruptions": disruptions}
+    except Exception as e:
+        print(f"[NAVITIA] disruptions error: {e}")
+        return {"disruptions": []}
+
+
+reachable_cache = {}
+
+AVG_TRAIN_SPEED_KMH = 200  # vitesse moyenne TGV intercités
+
+RAIL_CORRECTION = 1.15  # les voies ferrées ≈ 15% plus longues que le vol d'oiseau
+
+@app.get("/reachable")
+def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
+    """
+    Gares atteignables depuis une ville en moins de max_duration secondes.
+    Sources : destinations réelles depuis df_tarif (liaisons TGV connues),
+    distance estimée = Haversine × 1.15 / 200 km/h.
+    Cherche dans les deux sens (origine ET destination) pour couvrir tous les trajets.
+    """
+    cache_key = f"reachable_{from_city}_{max_duration}"
+    now = time.time()
+    if cache_key in reachable_cache:
+        cached_data, cached_time = reachable_cache[cache_key]
+        if now - cached_time < 1800:
+            return cached_data
+
+    from_code = get_code_uic(from_city)
+    if not from_code:
+        raise HTTPException(status_code=404, detail="Gare non trouvée")
+
+    lat_dep, lon_dep = get_coords(from_code)
+    if lat_dep is None:
+        raise HTTPException(status_code=404, detail="Coordonnées introuvables")
+
+    max_duration_h = max_duration / 3600
+
+    # Destinations réelles depuis df_tarif — dans les deux sens
+    as_origin = df_tarif[df_tarif["Gare origine - code UIC"] == from_code][
+        ["Gare destination", "Gare destination - code UIC"]
+    ].rename(columns={"Gare destination": "name", "Gare destination - code UIC": "uic"})
+
+    as_dest = df_tarif[df_tarif["Gare destination - code UIC"] == from_code][
+        ["Gare origine", "Gare origine - code UIC"]
+    ].rename(columns={"Gare origine": "name", "Gare origine - code UIC": "uic"})
+
+    destinations = pd.concat([as_origin, as_dest], ignore_index=True).drop_duplicates(subset=["uic"])
+
+    results = []
+    seen = set()
+
+    for _, row in destinations.iterrows():
+        dest_name = row["name"]
+        try:
+            dest_uic = int(row["uic"])
+        except (ValueError, TypeError):
+            continue
+
+        if dest_uic == from_code or dest_name in seen:
+            continue
+
+        g_lat, g_lon = get_coords(dest_uic)
+        if g_lat is None:
+            continue
+
+        # Distance estimée : Haversine × correction ferroviaire
+        haversine_km = distance_haversine(lat_dep, lon_dep, g_lat, g_lon)
+        dist_estimee = haversine_km * RAIL_CORRECTION
+        duree_h = dist_estimee / AVG_TRAIN_SPEED_KMH
+
+        if duree_h > max_duration_h:
+            continue
+
+        seen.add(dest_name)
+        duree_min = round(duree_h * 60)
+
+        if duree_min <= 60:
+            color = "green"
+        elif duree_min <= 120:
+            color = "orange"
+        else:
+            color = "red"
+
+        results.append({
+            "name": dest_name.title(),
+            "lat": g_lat,
+            "lon": g_lon,
+            "distance_km": round(dist_estimee),
+            "duree_min": duree_min,
+            "color": color,
+        })
+
+    results.sort(key=lambda x: x["duree_min"])
+    result = {"stations": results[:120]}
+    reachable_cache[cache_key] = (result, now)
+    return result
 
 
 
@@ -385,12 +612,20 @@ def estime_co2_avion(distance_km: float):
     return 0.255 * distance_km
 
 
-def get_full_journey(from_code: int, to_code: int):
-    now = datetime.now().strftime("%Y%m%dT%H%M%S")
+def get_full_journey(from_code: int, to_code: int, travel_date: str = None):
+    """travel_date : format YYYY-MM-DD (input HTML date). Si absent, utilise maintenant."""
+    if travel_date:
+        try:
+            # "2026-03-30" → "20260330T080000" (départ à 8h par défaut)
+            navitia_dt = travel_date.replace("-", "") + "T080000"
+        except Exception:
+            navitia_dt = datetime.now().strftime("%Y%m%dT%H%M%S")
+    else:
+        navitia_dt = datetime.now().strftime("%Y%m%dT%H%M%S")
     params = {
         "from": f"stop_area:SNCF:{from_code}",
         "to": f"stop_area:SNCF:{to_code}",
-        "datetime": now,
+        "datetime": navitia_dt,
         "count": 5,
     }
     response = requests.get(
@@ -663,6 +898,7 @@ def get_activities_near(
 def trajet(
         from_city: str = Query(..., description="Nom gare départ"),
         to_city: str = Query(..., description="Nom gare arrivée"),
+        date: str = Query(None, description="Date de voyage YYYY-MM-DD"),
 ):
     """Retourne les infos du trajet (prix, CO2, durée, coords) sans appels Overpass."""
     from_code = None
@@ -702,7 +938,7 @@ def trajet(
 
         # Journey API SNCF
         try:
-            journey, journeys_list = get_full_journey(from_code, to_code)
+            journey, journeys_list = get_full_journey(from_code, to_code, date)
         except Exception:
             journey, journeys_list = None, []
 

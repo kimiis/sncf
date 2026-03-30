@@ -545,6 +545,64 @@
     text-transform: capitalize;
 }
 
+/* ── TABLEAU DÉPARTS GARE ────────────────────── */
+.sr-departures-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.sr-departure-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid #F0E6D3;
+    font-size: 0.88rem;
+}
+.sr-departure-row:last-child { border-bottom: none; }
+.sr-departure-row:hover { background: #FAF0E0; border-radius: 8px; }
+
+.sr-dep-heure {
+    font-weight: 800;
+    color: #2D5443;
+    min-width: 45px;
+    font-size: 0.95rem;
+}
+
+.sr-dep-mode {
+    background: #2D5443;
+    color: #EDD9BE;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sr-dep-direction {
+    flex: 1;
+    color: #333;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sr-dep-num {
+    color: #8B9E6A;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+
+.sr-dep-rt {
+    color: #27AE60;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
 /* ── DISRUPTIONS BANNER ──────────────────────── */
 .sr-disruptions {
     margin: 0 1rem 1rem;

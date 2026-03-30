@@ -107,6 +107,20 @@ router.get("/destinations", async (req, res) => {
     }
 });
 
+// Tableau de départs temps réel (Navitia)
+router.get("/departures", async (req, res) => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/departures`, {
+            params: req.query,
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Erreur departures:", error.code || error.message);
+        res.status(500).json({ departures: [] });
+    }
+});
+
 // Perturbations trafic (Navitia)
 router.get("/disruptions", async (req, res) => {
     try {

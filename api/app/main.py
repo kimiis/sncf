@@ -384,6 +384,43 @@ def autocomplete(q: str = ""):
     return [g for g in df_gares["LIBELLE"].dropna().unique() if q_lower in g.lower()][:10]
 
 
+@app.get("/departures")
+def get_departures(from_city: str = Query(...), count: int = Query(10)):
+    """Tableau de départs en temps réel depuis une gare — Navitia /departures."""
+    from_code = get_code_uic(from_city)
+    if not from_code:
+        return {"departures": []}
+    try:
+        resp = requests.get(
+            f"https://api.sncf.com/v1/coverage/sncf/stop_areas/stop_area:SNCF:{from_code}/departures",
+            params={"count": count, "data_freshness": "realtime"},
+            headers=headers,
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            return {"departures": []}
+        raw = resp.json().get("departures", [])
+        departures = []
+        for d in raw:
+            sdt = d.get("stop_date_time", {})
+            info = d.get("display_informations", {})
+            dep_dt = sdt.get("departure_date_time", "")
+            is_realtime = sdt.get("data_freshness") == "realtime"
+            # Formater l'heure : "20260330T142300" → "14h23"
+            heure = f"{dep_dt[9:11]}h{dep_dt[11:13]}" if len(dep_dt) >= 13 else "—"
+            departures.append({
+                "heure": heure,
+                "direction": info.get("direction", ""),
+                "mode": info.get("commercial_mode", ""),
+                "train_number": info.get("headsign", ""),
+                "realtime": is_realtime,
+            })
+        return {"departures": departures}
+    except Exception as e:
+        print(f"[NAVITIA] departures error: {e}")
+        return {"departures": []}
+
+
 @app.get("/disruptions")
 def get_disruptions(from_city: str = Query(...)):
     """Perturbations actives sur la gare de départ via Navitia."""

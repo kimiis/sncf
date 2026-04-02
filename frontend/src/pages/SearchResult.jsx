@@ -77,6 +77,7 @@ export default function SearchResult() {
     const [disruptions,    setDisruptions]    = useState([]);
     const [showDisruptions, setShowDisruptions] = useState(true);
     const [allDepartures,  setAllDepartures]  = useState([]);
+    const [mlPrediction,   setMlPrediction]   = useState(null);
 
     const [showHotels,     setShowHotels]     = useState(false);
     const [showBikes,      setShowBikes]      = useState(false);
@@ -130,12 +131,15 @@ export default function SearchResult() {
         };
         fetchTrajet();
 
-        // Perturbations + départs en parallèle
+        // Perturbations + départs + prédiction ML en parallèle
         api.get("/sncf/disruptions", { params: { from_city: fromCity } })
             .then(({ data }) => setDisruptions(data.disruptions || []))
             .catch(() => {});
         api.get("/sncf/departures", { params: { from_city: fromCity, count: 12, ...(travelDate && { date: travelDate }) } })
             .then(({ data }) => setAllDepartures(data.departures || []))
+            .catch(() => {});
+        api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
+            .then(({ data }) => setMlPrediction(data))
             .catch(() => {});
     }, [fromCity, toCity, travelDate, isAuthenticated, userId]);
 
@@ -289,6 +293,52 @@ export default function SearchResult() {
                     <span className="sr-stat-label">Prix indicatif</span>
                 </div>
             </div>
+
+            {/* ── PRÉDICTION IA DU PRIX ── */}
+            {mlPrediction && (
+                <section className="sr-card sr-ml-card">
+                    <h2 className="sr-section-title">
+                         Prédiction du prix
+                    </h2>
+                    <div className="sr-ml-result">
+                        <div className={`sr-ml-badge sr-ml-badge-${mlPrediction.prediction?.toLowerCase()}`}>
+                            {mlPrediction.prediction}
+                            <span className="sr-ml-range">
+                                {mlPrediction.price_ranges?.[mlPrediction.prediction]}
+                            </span>
+                        </div>
+                        <div className="sr-ml-confidence">
+                            <span className="sr-ml-conf-label">Confiance</span>
+                            <div className="sr-ml-conf-track">
+                                <div
+                                    className="sr-ml-conf-fill"
+                                    style={{ width: `${Math.round(mlPrediction.confidence * 100)}%` }}
+                                />
+                            </div>
+                            <span className="sr-ml-conf-val">
+                                {Math.round(mlPrediction.confidence * 100)} %
+                            </span>
+                        </div>
+                    </div>
+                    <div className="sr-ml-probas">
+                        {mlPrediction.probabilities && Object.entries(mlPrediction.probabilities).map(([cat, prob]) => (
+                            <div key={cat} className="sr-ml-proba-row">
+                                <span className={`sr-ml-proba-label sr-ml-label-${cat.toLowerCase()}`}>{cat}</span>
+                                <div className="sr-ml-proba-track">
+                                    <div
+                                        className={`sr-ml-proba-fill sr-ml-fill-${cat.toLowerCase()}`}
+                                        style={{ width: `${Math.round(prob * 100)}%` }}
+                                    />
+                                </div>
+                                <span className="sr-ml-proba-pct">{Math.round(prob * 100)} %</span>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="sr-ml-footnote">
+                        Modèle XGBoost entraîné sur les tarifs TGV SNCF Open Data · {mlPrediction.distance_km} km
+                    </p>
+                </section>
+            )}
 
             {/* ── MÉTÉO ── */}
             {end?.latitude && (

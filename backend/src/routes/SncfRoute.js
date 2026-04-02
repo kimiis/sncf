@@ -149,4 +149,32 @@ router.get("/reachable", async (req, res) => {
     }
 });
 
+// Prédiction ML — XGBoost prix + rapport d'évaluation
+router.get("/ml/predict-price", async (req, res) => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/ml/predict-price`, {
+            params: req.query,
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Erreur ml/predict-price:", error.code || error.message);
+        if (error.response?.status === 503) {
+            res.status(503).json({ error: "Modèles ML non disponibles. Exécutez : python ml/train.py" });
+        } else {
+            res.status(500).json({ error: "Erreur prédiction ML" });
+        }
+    }
+});
+
+router.get("/ml/report", async (req, res) => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/ml/report`, { timeout: 5000 });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Erreur ml/report:", error.code || error.message);
+        res.status(500).json({ error: "Rapport ML non disponible" });
+    }
+});
+
 module.exports = router;

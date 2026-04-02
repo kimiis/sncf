@@ -1,0 +1,5 @@
+# Modèles entraînés — générés via ml/train.py, ne pas versionner
+*.pkl
+*.json
+*.npy
+!.gitkeep

@@ -1175,3 +1175,141 @@ def get_destinations():
     shuffled = result.copy()
     random.shuffle(shuffled)
     return shuffled
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  ML — Chargement des modèles (K-Means + XGBoost)
+#  Les modèles sont générés via : python ml/train.py
+# ══════════════════════════════════════════════════════════════════════════
+import json as _json
+
+_ML_DIR = os.path.join(ROOT_DIR, "ml", "models")
+_ml_ready  = False
+_ml_report: dict = {}
+_ml_kmeans = _ml_scaler = _ml_xgb = _ml_le = None
+
+try:
+    import numpy as _np
+    import joblib as _joblib
+    from xgboost import XGBClassifier as _XGBClassifier
+
+    _ml_kmeans = _joblib.load(os.path.join(_ML_DIR, "kmeans_gares.pkl"))
+    _ml_scaler = _joblib.load(os.path.join(_ML_DIR, "scaler_geo.pkl"))
+    _ml_le     = _joblib.load(os.path.join(_ML_DIR, "label_encoder.pkl"))
+    _ml_xgb    = _XGBClassifier(verbosity=0)
+    _ml_xgb.load_model(os.path.join(_ML_DIR, "xgb_price.json"))
+
+    with open(os.path.join(_ML_DIR, "rapport_evaluation.json"), encoding="utf-8") as _f:
+        _ml_report = _json.load(_f)
+
+    _ml_ready = True
+    print("[ML] Modèles K-Means + XGBoost chargés ✓")
+except Exception as _ml_exc:
+    print(f"[ML] Modèles non disponibles ({_ml_exc}) — exécutez : python ml/train.py")
+
+
+def _get_cluster(lat: float, lon: float) -> int:
+    """Assigne un cluster K-Means à partir des coordonnées GPS."""
+    coords_s = _ml_scaler.transform([[lat, lon]])
+    return int(_ml_kmeans.predict(coords_s)[0])
+
+
+def _build_ml_features(distance_km: float, orig_cluster: int, dest_cluster: int):
+    import numpy as _np2
+    return _np2.array([[
+        distance_km,
+        _np2.log1p(distance_km),
+        distance_km ** 2,
+        orig_cluster,
+        dest_cluster,
+    ]])
+
+
+@app.get("/ml/predict-price")
+def ml_predict_price(
+    from_city: str = Query(...),
+    to_city:   str = Query(...),
+    distance_km: float = Query(None, description="Distance en km (calculée automatiquement si absente)"),
+):
+    """
+    Prédit la catégorie de prix (LOW / MEDIUM / HIGH / PREMIUM) via XGBoost.
+    Utilise le clustering K-Means pour encoder la position géographique des gares.
+    """
+    if not _ml_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Modèles ML non disponibles. Exécutez : python ml/train.py",
+        )
+
+    # Résolution des coordonnées GPS
+    orig_coords = dest_coords = None
+    try:
+        orig_code = get_code_uic(from_city)
+        dest_code = get_code_uic(to_city)
+        if orig_code:
+            orig_coords = get_coords(orig_code)
+        if dest_code:
+            dest_coords = get_coords(dest_code)
+    except Exception:
+        pass
+
+    # Calcul de la distance si non fournie
+    if not distance_km or distance_km <= 0:
+        if orig_coords and dest_coords:
+            distance_km = distance_haversine(
+                orig_coords[0], orig_coords[1],
+                dest_coords[0], dest_coords[1],
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Impossible de calculer la distance. Fournissez distance_km ou des noms de villes valides.",
+            )
+
+    # Clusters géographiques K-Means
+    orig_cluster = _get_cluster(*orig_coords) if orig_coords else 0
+    dest_cluster = _get_cluster(*dest_coords) if dest_coords else 0
+
+    # Prédiction XGBoost
+    features = _build_ml_features(float(distance_km), orig_cluster, dest_cluster)
+    proba     = _ml_xgb.predict_proba(features)[0]
+    pred_idx  = int(proba.argmax())
+    pred_label = _ml_le.classes_[pred_idx]
+    confidence = float(proba[pred_idx])
+
+    probabilities = {
+        _ml_le.classes_[i]: round(float(p), 3)
+        for i, p in enumerate(proba)
+    }
+
+    return {
+        "from_city":    from_city,
+        "to_city":      to_city,
+        "distance_km":  round(float(distance_km), 1),
+        "origin_zone":  orig_cluster,
+        "dest_zone":    dest_cluster,
+        "prediction":   pred_label,
+        "confidence":   round(confidence, 3),
+        "probabilities": probabilities,
+        "price_ranges": {
+            "LOW":     "0–40 €",
+            "MEDIUM":  "40–80 €",
+            "HIGH":    "80–150 €",
+            "PREMIUM": "> 150 €",
+        },
+    }
+
+
+@app.get("/ml/report")
+def ml_report():
+    """
+    Retourne le rapport d'évaluation complet des modèles ML :
+    métriques (accuracy, precision, recall, F1, AUC-ROC),
+    hyperparamètres, distribution du dataset.
+    """
+    if not _ml_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Modèles ML non disponibles. Exécutez : python ml/train.py",
+        )
+    return _ml_report

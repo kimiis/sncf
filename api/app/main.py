@@ -10,11 +10,29 @@ from math import radians, sin, cos, sqrt, atan2
 import os
 import time
 import random
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+def _warm_destinations_cache():
+    """Pré-charge les destinations en arrière-plan au démarrage de FastAPI."""
+    def _warm():
+        print("[CACHE] Pré-chargement destinations en arrière-plan…")
+        try:
+            data = _static_destinations()
+            destinations_cache["data"] = data
+            destinations_cache["time"] = time.time()
+            print(f"[CACHE] {len(data)} destinations mises en cache ✓")
+        except Exception as e:
+            print(f"[CACHE] Erreur pré-chargement: {e}")
+    threading.Thread(target=_warm, daemon=True).start()
+
 
 # Strip le préfixe /api quand FastAPI est appelé via Vercel
 class StripApiPrefix(BaseHTTPMiddleware):
@@ -1118,21 +1136,33 @@ def trajet_poi(
     }
 
 
+def _fetch_one_city(idx_city):
+    """Récupère image + description Wikipedia pour une ville (appelé en parallèle)."""
+    idx, city = idx_city
+    image = get_wikipedia_image(city["name"])
+    desc = get_wikipedia_description(city["name"]) or f"Escapade à {city['name']} en train"
+    return {
+        "id": idx + 1,
+        "name": city["name"],
+        "description": desc,
+        "region": city["region"],
+        "image": image,
+        "tags": city["tags"],
+    }
+
+
 def _static_destinations():
-    """Liste statique avec images Wikipedia — fallback si pas de clé OpenTripMap."""
+    """Liste statique avec images Wikipedia — requêtes parallèles (5 workers)."""
+    items = list(enumerate(FRENCH_CITIES))
     result = []
-    for idx, city in enumerate(FRENCH_CITIES):
-        image = get_wikipedia_image(city["name"])
-        desc = get_wikipedia_description(city["name"]) or f"Escapade à {city['name']} en train"
-        result.append({
-            "id": idx + 1,
-            "name": city["name"],
-            "description": desc,
-            "region": city["region"],
-            "image": image,
-            "tags": city["tags"],
-        })
-        time.sleep(0.2)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(_fetch_one_city, item): item[0] for item in items}
+        for future in as_completed(futures):
+            try:
+                result.append(future.result())
+            except Exception as e:
+                print(f"[DEST] Erreur fetch: {e}")
+    result.sort(key=lambda x: x["id"])
     shuffled = result.copy()
     random.shuffle(shuffled)
     return shuffled

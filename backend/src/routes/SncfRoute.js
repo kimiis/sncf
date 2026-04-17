@@ -94,7 +94,7 @@ router.get("/gare-proche", async (req, res) => {
 router.get("/destinations", async (req, res) => {
     try {
         const response = await axios.get(`${FASTAPI_URL}/sncf/destinations`, {
-            timeout: 30000,
+            timeout: 60000,
         });
         res.json(response.data);
     } catch (error) {

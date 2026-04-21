@@ -214,7 +214,7 @@ print(f"  → {len(df_routes)} routes valides")
 print("\n[4/6] Feature engineering…")
 
 PRICE_BINS   = [0, 40, 80, 150, float("inf")]
-PRICE_LABELS = ["LOW", "MEDIUM", "HIGH", "PREMIUM"]
+PRICE_LABELS = ["BUDGET", "STANDARD", "CONFORT", "PRESTIGE"]
 
 df_routes["price_category"] = pd.cut(
     df_routes["prix_moyen"], bins=PRICE_BINS, labels=PRICE_LABELS
@@ -326,7 +326,7 @@ report = {
         "n_test": int(len(X_te)),
         "features": FEATURES,
         "price_distribution": {str(k): int(v) for k, v in price_dist.items()},
-        "price_ranges": {"LOW": "0–40€", "MEDIUM": "40–80€", "HIGH": "80–150€", "PREMIUM": ">150€"},
+        "price_ranges": {"BUDGET": "0–40€", "STANDARD": "40–80€", "CONFORT": "80–150€", "PRESTIGE": ">150€"},
     },
     "kmeans": {
         "algorithm": "K-Means",

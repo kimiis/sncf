@@ -1262,7 +1262,7 @@ def ml_predict_price(
     distance_km: float = Query(None, description="Distance en km (calculée automatiquement si absente)"),
 ):
     """
-    Prédit la catégorie de prix (LOW / MEDIUM / HIGH / PREMIUM) via XGBoost.
+    Prédit la catégorie de prix (BUDGET / STANDARD / CONFORT / PRESTIGE) via XGBoost.
     Utilise le clustering K-Means pour encoder la position géographique des gares.
     """
     if not _ml_ready:
@@ -1322,10 +1322,10 @@ def ml_predict_price(
         "confidence":   round(confidence, 3),
         "probabilities": probabilities,
         "price_ranges": {
-            "LOW":     "0–40 €",
-            "MEDIUM":  "40–80 €",
-            "HIGH":    "80–150 €",
-            "PREMIUM": "> 150 €",
+            "BUDGET":   "0–40 €",
+            "STANDARD": "40–80 €",
+            "CONFORT":  "80–150 €",
+            "PRESTIGE": "> 150 €",
         },
     }
 

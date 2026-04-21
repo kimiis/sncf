@@ -15,9 +15,9 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import {
     FaTrain, FaRoad, FaClock, FaEuroSign, FaLeaf, FaCar, FaPlane,
-    FaHotel, FaBicycle, FaCompass, FaParking, FaBell,
+    FaHotel, FaBicycle, FaCompass, FaParking,
     FaUtensils, FaBeer, FaLandmark, FaTree, FaRunning,
-    FaMapMarkerAlt, FaCalendarAlt,
+    FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp,
 } from "react-icons/fa";
 import api from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
@@ -71,8 +71,7 @@ export default function SearchResult() {
     const [poiLoading, setPoiLoading]       = useState(false);
     const [error, setError]                 = useState("");
     const [activeJourneyIdx, setActiveJourneyIdx] = useState(0);
-    const [alertPrixOpen, setAlertPrixOpen] = useState(false);
-    const [alertPrixVal, setAlertPrixVal]   = useState("");
+    const [showDepartures, setShowDepartures] = useState(false);
 
     const [disruptions,    setDisruptions]    = useState([]);
     const [showDisruptions, setShowDisruptions] = useState(true);
@@ -165,21 +164,6 @@ export default function SearchResult() {
         };
         fetchPoi();
     }, [trajet]);
-
-    const handleAlertPrix = async () => {
-        if (!alertPrixVal) return;
-        try {
-            await api.post("/stats/price-alert", {
-                gare_depart: fromCity, gare_arrivee: toCity,
-                prix_max: parseFloat(alertPrixVal),
-            });
-            setAlertPrixOpen(false);
-            setAlertPrixVal("");
-            alert(`Alerte créée ! On vous préviendra si le prix indicatif passe sous ${alertPrixVal}€.`);
-        } catch {
-            alert("Connectez-vous pour créer une alerte prix.");
-        }
-    };
 
     const toggleActivityFilter = (cat) =>
         setActivityFilters(prev => ({ ...prev, [cat]: !prev[cat] }));
@@ -390,75 +374,66 @@ export default function SearchResult() {
             {/* ── CO2 ÉQUIVALENCES ── */}
             <CO2Equivalences co2SavedKg={co2Saved} />
 
-            {/* ── PROCHAINS DÉPARTS ── */}
-            {prochainsDepartsData.length > 0 && (
+            {/* ── DÉPARTS (dépliant) ── */}
+            {(prochainsDepartsData.length > 0 || allDepartures.length > 0) && (
                 <section className="sr-card">
-                    <h2 className="sr-section-title">
-                        <FaTrain className="sr-section-icon" /> Prochains départs
-                    </h2>
-                    <div className="sr-departs-scroll">
-                        {prochainsDepartsData.map((dep, idx) => (
-                            <button
-                                key={idx}
-                                className={`sr-depart-chip ${activeJourneyIdx === idx ? "active" : ""}`}
-                                onClick={() => setActiveJourneyIdx(idx)}
-                            >
-                                <span className="sr-depart-times">
-                                    {dep.depart?.slice(0,2)}h{dep.depart?.slice(2,4)}
-                                    {" → "}
-                                    {dep.arrivee?.slice(0,2)}h{dep.arrivee?.slice(2,4)}
-                                </span>
-                                <span className="sr-depart-dur">{dep.duree}</span>
-                                {dep.nb_changements > 0 && (
-                                    <span className="sr-depart-chg">{dep.nb_changements} chgt</span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {/* ── TABLEAU DE DÉPARTS GARE ── */}
-            {allDepartures.length > 0 && (
-                <section className="sr-card">
-                    <h2 className="sr-section-title">
-                        <FaTrain className="sr-section-icon" /> Tous les départs depuis {fromCity}
-                    </h2>
-                    <div className="sr-departures-table">
-                        {allDepartures.map((d, i) => (
-                            <div key={i} className="sr-departure-row">
-                                <span className="sr-dep-heure">{d.heure}</span>
-                                <span className="sr-dep-mode">{d.mode}</span>
-                                <span className="sr-dep-direction">{d.direction}</span>
-                                <span className="sr-dep-num">n°{d.train_number}</span>
-                                {d.realtime && <span className="sr-dep-rt">● live</span>}
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {/* ── ALERTE PRIX ── */}
-            <div className="sr-card">
-                {!alertPrixOpen ? (
-                    <button className="sr-alert-btn" onClick={() => setAlertPrixOpen(true)}>
-                        <FaBell /> Créer une alerte prix
+                    <button
+                        className="sr-collapse-header"
+                        onClick={() => setShowDepartures(v => !v)}
+                    >
+                        <span className="sr-section-title" style={{ margin: 0 }}>
+                            <FaTrain className="sr-section-icon" /> Départs depuis {fromCity}
+                        </span>
+                        {showDepartures ? <FaChevronUp /> : <FaChevronDown />}
                     </button>
-                ) : (
-                    <div className="sr-alert-form">
-                        <span>Me prévenir si le prix passe sous</span>
-                        <input
-                            type="number" min="1"
-                            value={alertPrixVal}
-                            onChange={(e) => setAlertPrixVal(e.target.value)}
-                            placeholder="50"
-                        />
-                        <span>€</span>
-                        <button className="sr-alert-save" onClick={handleAlertPrix}>Enregistrer</button>
-                        <button className="sr-alert-cancel" onClick={() => setAlertPrixOpen(false)}>Annuler</button>
-                    </div>
-                )}
-            </div>
+
+                    {showDepartures && (
+                        <>
+                            {prochainsDepartsData.length > 0 && (
+                                <>
+                                    <p className="sr-departures-subtitle">Prochains départs vers {toCity}</p>
+                                    <div className="sr-departs-scroll">
+                                        {prochainsDepartsData.map((dep, idx) => (
+                                            <button
+                                                key={idx}
+                                                className={`sr-depart-chip ${activeJourneyIdx === idx ? "active" : ""}`}
+                                                onClick={() => setActiveJourneyIdx(idx)}
+                                            >
+                                                <span className="sr-depart-times">
+                                                    {dep.depart?.slice(0,2)}h{dep.depart?.slice(2,4)}
+                                                    {" → "}
+                                                    {dep.arrivee?.slice(0,2)}h{dep.arrivee?.slice(2,4)}
+                                                </span>
+                                                <span className="sr-depart-dur">{dep.duree}</span>
+                                                {dep.nb_changements > 0 && (
+                                                    <span className="sr-depart-chg">{dep.nb_changements} chgt</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            {allDepartures.length > 0 && (
+                                <>
+                                    <p className="sr-departures-subtitle">Tous les départs</p>
+                                    <div className="sr-departures-table">
+                                        {allDepartures.map((d, i) => (
+                                            <div key={i} className="sr-departure-row">
+                                                <span className="sr-dep-heure">{d.heure}</span>
+                                                <span className="sr-dep-mode">{d.mode}</span>
+                                                <span className="sr-dep-direction">{d.direction}</span>
+                                                <span className="sr-dep-num">n°{d.train_number}</span>
+                                                {d.realtime && <span className="sr-dep-rt">● live</span>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                </section>
+            )}
 
             {/* ── FILTRES POI ── */}
             <section className="sr-card">

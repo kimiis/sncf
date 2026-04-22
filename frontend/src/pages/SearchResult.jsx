@@ -99,6 +99,17 @@ export default function SearchResult() {
                 });
                 setTrajet(data);
 
+                // Transports locaux — on passe les coords réelles de la gare d'arrivée
+                const arr = data.coordonnees_arrivee;
+                const transportParams = { city: toCity, count: 30 };
+                if (arr?.latitude && arr?.longitude) {
+                    transportParams.lat = arr.latitude;
+                    transportParams.lon = arr.longitude;
+                }
+                api.get("/sncf/transport/city-departures", { params: transportParams })
+                    .then(({ data: t }) => setLocalTransport(t))
+                    .catch(() => {});
+
                 // Toujours sauvegarder en localStorage (fallback fiable)
                 const co2Saved = data.co2_voiture_kg && data.co2_train_kg
                     ? (data.co2_voiture_kg - data.co2_train_kg).toFixed(1) : null;
@@ -141,9 +152,6 @@ export default function SearchResult() {
             .catch(() => {});
         api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
             .then(({ data }) => setMlPrediction(data))
-            .catch(() => {});
-        api.get("/sncf/transport/city-departures", { params: { city: toCity, count: 30 } })
-            .then(({ data }) => setLocalTransport(data))
             .catch(() => {});
     }, [fromCity, toCity, travelDate, isAuthenticated, userId]);
 

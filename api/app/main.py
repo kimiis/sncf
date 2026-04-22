@@ -119,22 +119,18 @@ def get_wikipedia_image(city_name):
             )
             if resp.status_code == 200:
                 data = resp.json()
-                # Préférer originalimage (haute résolution) puis thumbnail
                 src = (
                     data.get("originalimage", {}).get("source")
                     or data.get("thumbnail", {}).get("source")
                 )
                 if src:
-                    print(f"[WIKI] {city_name} image trouvée ({lang})")
                     return src
         except Exception:
             pass
-    print(f"[WIKI] {city_name} aucune image trouvée")
     return None
 
 
 def get_wikipedia_description(city_name):
-    """Récupère la première phrase de l'intro Wikipedia d'une ville."""
     try:
         resp = requests.get(
             "https://fr.wikipedia.org/w/api.php",
@@ -171,7 +167,7 @@ def fetch_city_destination(idx, city):
     try:
         time.sleep(0.4)
 
-        # 1. Lieux emblématiques via OpenTripMap (coords statiques, pas de geoname)
+        # 1. Lieux emblématiques via OpenTripMap
         places = []
         if OPENTRIPMAP_API_KEY:
             places_resp = requests.get(
@@ -253,52 +249,64 @@ df_tarif.dropna(
     ],
     inplace=True,
 )
-# print(f"[STARTUP] tarifs: {df_tarif.shape}")
-
-# print(f"[STARTUP] Chargement de {co2_file}...")
 df_co2 = pd.read_excel(co2_file)
 df_co2.dropna(subset=["Origine_uic", "Destination_uic"], inplace=True)
-# print(f"[STARTUP] co2: {df_co2.shape}")
-#
-# print(f"[STARTUP] Chargement de {gares_file}...")
 df_gares = pd.read_excel(gares_file)
-# print(f"[STARTUP] gares: {df_gares.shape}")
+
 
 # Auth API SNCF
-api_key = os.getenv("SNCF_API_KEY", "2d5f9bc9-9eb2-471b-bba8-24d542cf79ae")
+api_key = os.getenv("SNCF_API_KEY", "")
 token = base64.b64encode(f"{api_key}:".encode()).decode()
 headers = {"Authorization": f"Basic {token}"}
 
-# URL Overpass (OSM)
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Instances Overpass par ordre de priorité (fallback si 406/timeout)
+OVERPASS_INSTANCES = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+]
+
+_OVERPASS_HEADERS = {
+    "User-Agent": "SNCF-Travel-App/1.0 (educational project)",
+    "Accept": "application/json",
+}
 
 
 def overpass_query_cached(query: str, cache_key: str, timeout: int = 30):
-    """Exécute une requête Overpass avec cache pour éviter le rate limiting 429."""
+    """Exécute une requête Overpass avec cache et fallback multi-instances."""
     now = time.time()
 
-    # Vérifier le cache
     if cache_key in overpass_cache:
         cached_data, cached_time = overpass_cache[cache_key]
         if now - cached_time < CACHE_DURATION:
-            print(f"[CACHE] Utilisation du cache pour {cache_key}")
+            print(f"[CACHE] Hit {cache_key}")
             return cached_data
 
-    # Requête Overpass
-    try:
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=timeout)
-        resp.raise_for_status()
-        data = resp.json()
-        # Stocker en cache
-        overpass_cache[cache_key] = (data, now)
-        return data
-    except Exception as e:
-        # print(f"[ERROR] Erreur Overpass: {e}")
-        # Retourner le cache expiré si disponible
-        if cache_key in overpass_cache:
-            print(f"[CACHE] Utilisation du cache expiré pour {cache_key}")
-            return overpass_cache[cache_key][0]
-        return {"elements": []}
+    for url in OVERPASS_INSTANCES:
+        try:
+            resp = requests.post(
+                url,
+                data={"data": query},
+                headers=_OVERPASS_HEADERS,
+                timeout=timeout,
+            )
+            if resp.status_code == 406:
+                print(f"[OVERPASS] 406 sur {url}, essai suivant…")
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            overpass_cache[cache_key] = (data, now)
+            print(f"[OVERPASS] OK via {url} — {len(data.get('elements', []))} éléments")
+            return data
+        except Exception as e:
+            print(f"[OVERPASS] Erreur {url}: {type(e).__name__}: {e}")
+            continue
+
+    # Toutes les instances ont échoué — cache expiré ou vide
+    if cache_key in overpass_cache:
+        print(f"[OVERPASS] Fallback cache expiré pour {cache_key}")
+        return overpass_cache[cache_key][0]
+    return {"elements": []}
 
 
 @app.get("/gares")
@@ -476,11 +484,9 @@ def get_disruptions(from_city: str = Query(...)):
         print(f"[NAVITIA] disruptions error: {e}")
         return {"disruptions": []}
 
-
 reachable_cache = {}
 
 AVG_TRAIN_SPEED_KMH = 200  # vitesse moyenne TGV intercités
-
 RAIL_CORRECTION = 1.15  # les voies ferrées ≈ 15% plus longues que le vol d'oiseau
 
 @app.get("/reachable")
@@ -568,9 +574,6 @@ def get_reachable(from_city: str = Query(...), max_duration: int = Query(7200)):
     reachable_cache[cache_key] = (result, now)
     return result
 
-
-
-
 def get_code_uic(station_name: str):
     name_lower = station_name.lower().strip()
     libelles = df_gares["LIBELLE"].str.lower()
@@ -592,7 +595,6 @@ def get_code_uic(station_name: str):
 
     return None
 
-
 def get_coords(code_uic: int):
     geo = df_gares.loc[df_gares["CODE_UIC"] == code_uic, "Geo Point"].values
     if len(geo) == 0:
@@ -602,7 +604,6 @@ def get_coords(code_uic: int):
         lat, lon = [float(x.strip()) for x in latlon_str.split(",")]
         return lat, lon
     return None, None
-
 
 def distance_haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -616,19 +617,15 @@ def distance_haversine(lat1, lon1, lat2, lon2):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
-
 def estime_co2_train(distance_km: float):
     return 0.0194 * distance_km
-
 
 def estime_co2_voiture(distance_km: float):
     return 0.122 * distance_km
 
-
 def estime_co2_avion(distance_km: float):
-    # 0.255 kg CO2/km par passager (ADEME) — seulement pertinent > 300 km
+    # 0.255 kg CO2/km par passager
     return 0.255 * distance_km
-
 
 def get_full_journey(from_code: int, to_code: int, travel_date: str = None):
     """travel_date : format YYYY-MM-DD (input HTML date). Si absent, utilise maintenant."""
@@ -659,7 +656,6 @@ def get_full_journey(from_code: int, to_code: int, travel_date: str = None):
         return None, []
     return journeys[0], journeys[:3]
 
-
 def format_journey_summary(journey: dict) -> dict:
     """Résumé d'un journey pour l'affichage multi-trajets."""
     if not journey:
@@ -675,7 +671,6 @@ def format_journey_summary(journey: dict) -> dict:
         "arrivee": arr[9:13] if len(arr) >= 13 else "",
         "nb_changements": sum(1 for s in journey.get("sections", []) if s.get("type") == "transfer"),
     }
-
 
 def extract_route_coordinates(journey):
     """
@@ -707,7 +702,7 @@ def get_hotels_near(
         limit: int = 20,
 ):
     """
-    Retourne une liste d'hébergements OSM proches (hôtels, auberges, B&B, etc.).
+    Retourne une liste d'hébergements proches (hôtels, auberges, B&B, etc.).
     [{name, lat, lon, distance_km_from_station}, ...]
     """
     query = f"""
@@ -874,8 +869,6 @@ def get_activities_near(
 
     cache_key = f"activities_{lat_gare:.4f}_{lon_gare:.4f}_{radius_m}_{limit}"
     data = overpass_query_cached(query, cache_key, timeout=25)
-    # print(f"[DEBUG] Overpass a retourne {len(data.get('elements', []))} elements")
-
     activities = []
     for el in data.get("elements", []):
         tags = el.get("tags", {})
@@ -1343,3 +1336,246 @@ def ml_report():
             detail="Modèles ML non disponibles. Exécutez : python ml/train.py",
         )
     return _ml_report
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TRANSPORTS EN COMMUN LOCAUX — Adapters par réseau
+# ══════════════════════════════════════════════════════════════════════════
+
+IDFM_API_KEY = os.getenv("IDFM_API_KEY", "")
+IDFM_BASE    = "https://prim.iledefrance-mobilites.fr/marketplace"
+
+# Mapping ville (minuscules) → (adapter, lat_gare, lon_gare)
+CITY_TRANSPORT_CONFIG = {
+    # Île-de-France → IDFM PRIM
+    "paris":      ("idfm", 48.8448,  2.3736),
+    "versailles": ("idfm", 48.7990,  2.1386),
+    "massy":      ("idfm", 48.7257,  2.2716),
+    "saint-denis":("idfm", 48.9362,  2.3574),
+    # Loire-Atlantique — réseau TAN (Nantes Métropole)
+    "nantes":        ("tan", 47.2173, -1.5418),
+    "saint-nazaire": ("tan", 47.2734, -2.2074),
+}
+
+# Type de ligne TAN → libellé mode
+_TAN_MODE = {0: "Tramway", 1: "Métro", 3: "Bus", 7: "Funiculaire", 11: "Trolleybus"}
+
+# Couleurs officielles lignes TAN (bg, fg)
+_TAN_LINE_COLORS = {
+    "1":  ("#EE1C25", "#FFFFFF"),
+    "2":  ("#006DB7", "#FFFFFF"),
+    "3":  ("#6CBE45", "#000000"),
+    "C1": ("#EB6A2E", "#FFFFFF"),
+    "C2": ("#6CBE45", "#FFFFFF"),
+    "C3": ("#A05B22", "#FFFFFF"),
+    "C4": ("#804099", "#FFFFFF"),
+    "C5": ("#F1C400", "#000000"),
+    "C6": ("#EE1C25", "#FFFFFF"),
+    "NC": ("#1A1A1A", "#FFFFFF"),
+    "NN": ("#1A1A1A", "#FFFFFF"),
+}
+
+
+def _tan_departures(lat: float, lon: float, count: int = 20) -> list:
+    """Prochains passages réseau TAN (Nantes) — open.tan.fr, sans token."""
+    try:
+        stops = requests.get(
+            f"https://open.tan.fr/ewp/arrets.json/{lat}/{lon}", timeout=6
+        ).json()
+    except Exception as e:
+        print(f"[TAN] arrets error: {e}")
+        return []
+
+    # Prendre plus d'arrêts pour couvrir toutes les lignes (tram peut être plus loin)
+    departures = []
+    seen_ligne_dir = set()   # déduplique par (ligne, direction) — 1 passage par sens
+
+    for stop in stops[:8]:
+        code      = stop.get("codeLieu", "")
+        stop_name = stop.get("libelle", code)
+        try:
+            passages = requests.get(
+                f"https://open.tan.fr/ewp/tempsattente.json/{code}", timeout=6
+            ).json()
+            if not isinstance(passages, list):
+                continue
+        except Exception as e:
+            print(f"[TAN] tempsattente {code} error: {e}")
+            continue
+
+        for p in passages:
+            ligne_num  = p.get("ligne", {}).get("numLigne", "?")
+            type_ligne = p.get("ligne", {}).get("typeLigne", 3)
+            direction  = p.get("terminus", "")
+            temps      = p.get("temps", "—")
+            realtime   = p.get("tempsReel") == "true"
+
+            # Un seul prochain passage par (ligne, direction)
+            key = (ligne_num, direction)
+            if key in seen_ligne_dir:
+                continue
+            seen_ligne_dir.add(key)
+
+            bg, fg = _TAN_LINE_COLORS.get(ligne_num, ("#007DC5", "#FFFFFF"))
+            departures.append({
+                "heure":      temps,
+                "ligne":      ligne_num,
+                "direction":  direction,
+                "mode":       _TAN_MODE.get(type_ligne, "Bus"),
+                "couleur":    bg,
+                "text_color": fg,
+                "realtime":   realtime,
+                "arret":      stop_name,
+                "_type_ligne": type_ligne,   # pour le tri, supprimé après
+            })
+
+    # Tram (typeLigne 0) en premier, puis bus (3), puis reste — dans chaque groupe par heure
+    MODE_ORDER = {0: 0, 1: 1, 11: 2, 3: 3}
+    departures.sort(key=lambda d: (
+        MODE_ORDER.get(d.pop("_type_ligne"), 9),
+        d["heure"] if d["heure"] not in ("proche", "—") else "0",
+    ))
+
+    return departures[:count]
+
+
+def _idfm_departures(lat: float, lon: float, count: int = 20) -> list:
+    """Prochains passages IDFM (Paris + IDF) — PRIM API SIRI Lite."""
+    if not IDFM_API_KEY:
+        print("[IDFM] IDFM_API_KEY manquant")
+        return []
+
+    headers = {"apikey": IDFM_API_KEY}
+
+    # 1. Arrêts proches des coordonnées
+    try:
+        nearby = requests.get(
+            f"{IDFM_BASE}/v2/navitia/coords/{lon};{lat}/places_nearby",
+            params={"type[]": "stop_point", "count": 5, "distance": 500},
+            headers=headers, timeout=8,
+        ).json().get("places_nearby", [])
+        stop_points = [p["stop_point"] for p in nearby if "stop_point" in p]
+    except Exception as e:
+        print(f"[IDFM] places_nearby error: {e}")
+        return []
+
+    if not stop_points:
+        return []
+
+    # 2. Cache lignes (code + couleur) depuis le 1er arrêt
+    line_cache = {}  # "C01384" → {code, color, text_color, mode}
+    try:
+        lines_data = requests.get(
+            f"{IDFM_BASE}/v2/navitia/stop_points/{stop_points[0]['id']}/lines",
+            headers=headers, timeout=6,
+        ).json().get("lines", [])
+        for line in lines_data:
+            key = line.get("id", "").split(":")[-1]  # "line:IDFM:C01384" → "C01384"
+            line_cache[key] = {
+                "code":       line.get("code", key),
+                "color":      f"#{line.get('color', 'CCCCCC')}",
+                "text_color": f"#{line.get('text_color', '000000')}",
+                "mode":       line.get("commercial_mode", {}).get("name", "Bus"),
+            }
+    except Exception as e:
+        print(f"[IDFM] lines cache error: {e}")
+
+    # 3. Départs SIRI pour chaque arrêt
+    departures = []
+    seen = set()
+
+    for sp in stop_points[:3]:
+        sp_num        = sp["id"].split(":")[-1]          # "463046"
+        monitoring_ref = f"STIF:StopPoint:Q:{sp_num}:"
+        stop_name      = sp.get("name", "")
+
+        try:
+            delivery = (
+                requests.get(
+                    f"{IDFM_BASE}/stop-monitoring",
+                    params={"MonitoringRef": monitoring_ref},
+                    headers=headers, timeout=8,
+                )
+                .json()
+                .get("Siri", {})
+                .get("ServiceDelivery", {})
+                .get("StopMonitoringDelivery", [{}])[0]
+            )
+            visits = delivery.get("MonitoredStopVisit", [])
+        except Exception as e:
+            print(f"[IDFM] stop-monitoring error: {e}")
+            continue
+
+        for visit in visits:
+            mvj      = visit.get("MonitoredVehicleJourney", {})
+            line_ref = mvj.get("LineRef", {}).get("value", "")
+            line_key = line_ref.split("::")[-1].rstrip(":")          # "C01384"
+
+            dir_names = mvj.get("DirectionName", [])
+            direction = dir_names[0].get("value", "") if dir_names else ""
+
+            mc      = mvj.get("MonitoredCall", {})
+            exp_dep = mc.get("ExpectedDepartureTime") or mc.get("AimedDepartureTime", "")
+            heure   = "—"
+            if exp_dep and "T" in exp_dep:
+                heure = exp_dep.split("T")[1][:5].replace(":", "h")
+
+            key = (line_key, direction, heure)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            info = line_cache.get(line_key, {})
+            departures.append({
+                "heure":      heure,
+                "ligne":      info.get("code", line_key),
+                "direction":  direction,
+                "mode":       info.get("mode", "Bus"),
+                "couleur":    info.get("color", "#CCCCCC"),
+                "text_color": info.get("text_color", "#000000"),
+                "realtime":   True,
+                "arret":      stop_name,
+            })
+
+    return departures[:count]
+
+
+@app.get("/transport/city-departures")
+def city_transport_departures(
+    city:  str   = Query(...,  description="Nom de la ville"),
+    lat:   float = Query(None, description="Latitude de la gare (optionnel)"),
+    lon:   float = Query(None, description="Longitude de la gare (optionnel)"),
+    count: int   = Query(20,   description="Nombre de départs"),
+):
+    """Prochains départs des transports locaux (bus, tram, métro) dans une ville."""
+    city_lower = city.lower().strip()
+
+    config = CITY_TRANSPORT_CONFIG.get(city_lower)
+    if not config:
+        for key, val in CITY_TRANSPORT_CONFIG.items():
+            if city_lower.startswith(key) or key.startswith(city_lower):
+                config = val
+                break
+
+    if not config:
+        return {"departures": [], "city": city, "message": f"Ville '{city}' non couverte pour l'instant"}
+
+    adapter, cfg_lat, cfg_lon = config
+    use_lat = lat if lat is not None else cfg_lat
+    use_lon = lon if lon is not None else cfg_lon
+
+    if adapter == "tan":
+        departures = _tan_departures(use_lat, use_lon, count)
+    elif adapter == "idfm":
+        departures = _idfm_departures(use_lat, use_lon, count)
+    else:
+        departures = []
+
+    stop_name = departures[0]["arret"] if departures else city
+    print(f"[TRANSPORT] {city} ({adapter}) — {len(departures)} départs depuis {stop_name}")
+    return {
+        "departures": departures,
+        "city":       city,
+        "stop":       stop_name,
+        "adapter":    adapter,
+    }

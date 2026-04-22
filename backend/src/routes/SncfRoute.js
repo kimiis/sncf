@@ -177,4 +177,22 @@ router.get("/ml/report", async (req, res) => {
     }
 });
 
+// Transports en commun locaux (bus, tram, métro) via Navitia.io
+router.get("/transport/city-departures", async (req, res) => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/transport/city-departures`, {
+            params: req.query,
+            timeout: 12000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Erreur transport local:", error.code || error.message);
+        if (error.response?.status === 503) {
+            res.status(503).json({ departures: [], message: "Clé Navitia manquante (NAVITIA_API_KEY)" });
+        } else {
+            res.status(200).json({ departures: [], message: "Transports locaux non disponibles" });
+        }
+    }
+});
+
 module.exports = router;

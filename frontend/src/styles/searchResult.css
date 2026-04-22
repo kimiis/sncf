@@ -807,3 +807,172 @@ body.dark .sr-alert-form input { background: var(--bg-section); border-color: va
     margin-top: 0.2rem;
     font-style: italic;
 }
+
+/* ── ONGLETS ──────────────────────────────────────── */
+.sr-tabs {
+    display: flex;
+    gap: 0;
+    background: #2D5443;
+    padding: 0 1rem;
+    margin-top: 0.5rem;
+}
+
+.sr-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.85rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: rgba(255,255,255,0.6);
+    font-family: "Poppins", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+.sr-tab:hover { color: rgba(255,255,255,0.9); }
+.sr-tab--active {
+    color: #fff;
+    border-bottom-color: #EDD9BE;
+}
+
+.sr-tab-badge {
+    background: #8B9E6A;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* ── ONGLET TRANSPORT ─────────────────────────────── */
+.sr-transport-tab {
+    max-width: 680px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+}
+
+.sr-transport-header {
+    margin-bottom: 0.75rem;
+}
+
+.sr-transport-source {
+    color: #A6706A;
+    font-size: 0.75rem;
+}
+
+.sr-transport-list {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(45,84,67,0.08);
+    overflow: hidden;
+}
+
+.sr-transport-arret {
+    font-size: 0.7rem;
+    color: #A6706A;
+}
+
+.sr-transport-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.sr-transport-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+    flex-shrink: 0;
+}
+
+.sr-transport-loading,
+.sr-transport-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #8B9E6A;
+}
+.sr-transport-loading-icon,
+.sr-transport-empty-icon { font-size: 2.5rem; opacity: 0.4; }
+.sr-transport-empty-sub { font-size: 0.8rem; color: #A6706A; }
+
+/* ── TRANSPORTS EN COMMUN LOCAUX ─────────────────── */
+.sr-transport-stop {
+    font-size: 0.8rem;
+    color: #8B9E6A;
+    margin-bottom: 0.75rem;
+    font-style: italic;
+}
+
+.sr-transport-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.sr-transport-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid #F0E6D3;
+    font-size: 0.88rem;
+}
+.sr-transport-row:last-child { border-bottom: none; }
+.sr-transport-row:hover { background: #FAF0E0; border-radius: 8px; }
+
+.sr-transport-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.sr-transport-mode {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #6B7C5E;
+    background: rgba(139, 158, 106, 0.12);
+    padding: 2px 6px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.sr-transport-direction {
+    flex: 1;
+    color: #333;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sr-transport-heure {
+    font-weight: 800;
+    color: #2D5443;
+    min-width: 45px;
+    text-align: right;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}

@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "jest --runInBand --forceExit",
+    "test:unit": "jest --testPathPattern=unit --runInBand --forceExit",
+    "test:integration": "jest --testPathPattern=integration --runInBand --forceExit",
+    "test:coverage": "jest --coverage --runInBand --forceExit"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +32,9 @@
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@jest/globals": "^30.3.0",
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.2.2"
   }
 }

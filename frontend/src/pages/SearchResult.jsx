@@ -17,7 +17,7 @@ import {
     FaTrain, FaRoad, FaClock, FaEuroSign, FaLeaf, FaCar, FaPlane,
     FaHotel, FaBicycle, FaCompass, FaParking,
     FaUtensils, FaBeer, FaLandmark, FaTree, FaRunning,
-    FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp,
+    FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp, FaBus,
 } from "react-icons/fa";
 import api from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
@@ -72,11 +72,13 @@ export default function SearchResult() {
     const [error, setError]                 = useState("");
     const [activeJourneyIdx, setActiveJourneyIdx] = useState(0);
     const [showDepartures, setShowDepartures] = useState(false);
+    const [activeTab, setActiveTab] = useState("results");
 
     const [disruptions,    setDisruptions]    = useState([]);
     const [showDisruptions, setShowDisruptions] = useState(true);
     const [allDepartures,  setAllDepartures]  = useState([]);
     const [mlPrediction,   setMlPrediction]   = useState(null);
+    const [localTransport, setLocalTransport] = useState(null);
 
     const [showHotels,     setShowHotels]     = useState(false);
     const [showBikes,      setShowBikes]      = useState(false);
@@ -139,6 +141,9 @@ export default function SearchResult() {
             .catch(() => {});
         api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
             .then(({ data }) => setMlPrediction(data))
+            .catch(() => {});
+        api.get("/sncf/transport/city-departures", { params: { city: toCity, count: 30 } })
+            .then(({ data }) => setLocalTransport(data))
             .catch(() => {});
     }, [fromCity, toCity, travelDate, isAuthenticated, userId]);
 
@@ -277,6 +282,28 @@ export default function SearchResult() {
                     <span className="sr-stat-label">Prix indicatif</span>
                 </div>
             </div>
+
+            {/* ── ONGLETS ── */}
+            <div className="sr-tabs">
+                <button
+                    className={`sr-tab ${activeTab === "results" ? "sr-tab--active" : ""}`}
+                    onClick={() => setActiveTab("results")}
+                >
+                    <FaTrain /> Résultats
+                </button>
+                <button
+                    className={`sr-tab ${activeTab === "transport" ? "sr-tab--active" : ""}`}
+                    onClick={() => setActiveTab("transport")}
+                >
+                    <FaBus /> Transports à {toCity}
+                    {localTransport?.departures?.length > 0 && (
+                        <span className="sr-tab-badge">{localTransport.departures.length}</span>
+                    )}
+                </button>
+            </div>
+
+            {/* ══════════════ ONGLET RÉSULTATS ══════════════ */}
+            {activeTab === "results" && <>
 
             {/* ── PRÉDICTION IA DU PRIX ── */}
             {mlPrediction && (
@@ -639,6 +666,58 @@ export default function SearchResult() {
                         ))}
                     </div>
                 </section>
+            )}
+
+            </> /* fin onglet résultats */}
+
+            {/* ══════════════ ONGLET TRANSPORTS ══════════════ */}
+            {activeTab === "transport" && (
+                <div className="sr-transport-tab">
+                    {!localTransport ? (
+                        <div className="sr-transport-loading">
+                            <FaBus className="sr-transport-loading-icon" />
+                            <p>Chargement des transports…</p>
+                        </div>
+                    ) : localTransport.departures?.length === 0 ? (
+                        <div className="sr-transport-empty">
+                            <FaBus className="sr-transport-empty-icon" />
+                            <p>Pas de données de transport disponibles pour <strong>{toCity}</strong>.</p>
+                            <p className="sr-transport-empty-sub">Couverture en cours d'extension.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="sr-transport-header">
+                                <p className="sr-transport-stop">
+                                    Prochains passages depuis <strong>{localTransport.stop}</strong>
+                                    {localTransport.adapter && (
+                                        <span className="sr-transport-source"> · {localTransport.adapter.toUpperCase()}</span>
+                                    )}
+                                </p>
+                            </div>
+                            <div className="sr-transport-list">
+                                {localTransport.departures.map((dep, i) => (
+                                    <div key={i} className="sr-transport-row">
+                                        <span
+                                            className="sr-transport-badge"
+                                            style={{ backgroundColor: dep.couleur, color: dep.text_color }}
+                                        >
+                                            {dep.ligne}
+                                        </span>
+                                        <div className="sr-transport-info">
+                                            <span className="sr-transport-direction">{dep.direction}</span>
+                                            <span className="sr-transport-mode">{dep.mode}</span>
+                                            {dep.arret && <span className="sr-transport-arret">↗ {dep.arret}</span>}
+                                        </div>
+                                        <div className="sr-transport-right">
+                                            <span className="sr-transport-heure">{dep.heure}</span>
+                                            {dep.realtime && <span className="sr-dep-rt">● live</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
 
         </div>

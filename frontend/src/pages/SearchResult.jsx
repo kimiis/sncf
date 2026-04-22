@@ -15,9 +15,10 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import {
     FaTrain, FaRoad, FaClock, FaEuroSign, FaLeaf, FaCar, FaPlane,
-    FaHotel, FaBicycle, FaCompass, FaParking,
+    FaHotel, FaBicycle, FaCompass, FaParking, FaBus,
     FaUtensils, FaBeer, FaLandmark, FaTree, FaRunning,
-    FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp, FaBus,
+    FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp,
+    FaExclamationTriangle, FaTimes, FaStar, FaRegStar, FaCircle,
 } from "react-icons/fa";
 import api from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
@@ -230,7 +231,6 @@ export default function SearchResult() {
     return (
         <div className="sr-page">
 
-            {/* ── HERO ── */}
             <section className="sr-hero">
                 <div className="sr-hero-top">
                     <div className="sr-route-block">
@@ -248,12 +248,11 @@ export default function SearchResult() {
                 </div>
             </section>
 
-            {/* ── PERTURBATIONS ── */}
             {disruptions.length > 0 && showDisruptions && (
                 <div className="sr-disruptions">
                     <div className="sr-disruptions-header">
-                        <span className="sr-disruptions-title">⚠️ Perturbations à {fromCity}</span>
-                        <button className="sr-disruptions-close" onClick={() => setShowDisruptions(false)}>✕</button>
+                        <span className="sr-disruptions-title"><FaExclamationTriangle /> Perturbations à {fromCity}</span>
+                        <button className="sr-disruptions-close" onClick={() => setShowDisruptions(false)}><FaTimes /></button>
                     </div>
                     {disruptions.map((d, i) => (
                         <div key={i} className="sr-disruption-item">
@@ -266,7 +265,6 @@ export default function SearchResult() {
                 </div>
             )}
 
-            {/* ── STATS CARD ── */}
             <div className="sr-stats-card">
                 <div className="sr-stat">
                     <FaClock className="sr-stat-icon" />
@@ -291,7 +289,6 @@ export default function SearchResult() {
                 </div>
             </div>
 
-            {/* ── ONGLETS ── */}
             <div className="sr-tabs">
                 <button
                     className={`sr-tab ${activeTab === "results" ? "sr-tab--active" : ""}`}
@@ -310,10 +307,8 @@ export default function SearchResult() {
                 </button>
             </div>
 
-            {/* ══════════════ ONGLET RÉSULTATS ══════════════ */}
             {activeTab === "results" && <>
 
-            {/* ── PRÉDICTION IA DU PRIX ── */}
             {mlPrediction && (
                 <section className="sr-card sr-ml-card">
                     <h2 className="sr-section-title">
@@ -359,7 +354,6 @@ export default function SearchResult() {
                 </section>
             )}
 
-            {/* ── MÉTÉO ── */}
             {end?.latitude && (
                 <WeatherWidget
                     lat={end.latitude}
@@ -369,7 +363,6 @@ export default function SearchResult() {
                 />
             )}
 
-            {/* ── CO2 COMPARATIF ── */}
             {trajet.co2_train_kg && trajet.co2_voiture_kg && (
                 <section className="sr-card">
                     <h2 className="sr-section-title">
@@ -406,10 +399,8 @@ export default function SearchResult() {
                 </section>
             )}
 
-            {/* ── CO2 ÉQUIVALENCES ── */}
             <CO2Equivalences co2SavedKg={co2Saved} />
 
-            {/* ── DÉPARTS (dépliant) ── */}
             {(prochainsDepartsData.length > 0 || allDepartures.length > 0) && (
                 <section className="sr-card">
                     <button
@@ -459,7 +450,7 @@ export default function SearchResult() {
                                                 <span className="sr-dep-mode">{d.mode}</span>
                                                 <span className="sr-dep-direction">{d.direction}</span>
                                                 <span className="sr-dep-num">n°{d.train_number}</span>
-                                                {d.realtime && <span className="sr-dep-rt">● live</span>}
+                                                {d.realtime && <span className="sr-dep-rt"><FaCircle /> live</span>}
                                             </div>
                                         ))}
                                     </div>
@@ -470,7 +461,6 @@ export default function SearchResult() {
                 </section>
             )}
 
-            {/* ── FILTRES POI ── */}
             <section className="sr-card">
                 <h2 className="sr-section-title">
                     <FaCompass className="sr-section-icon" /> Afficher sur la carte
@@ -526,14 +516,12 @@ export default function SearchResult() {
                 )}
             </section>
 
-            {/* ── POI LOADING ── */}
             {poiLoading && (
                 <p className="sr-poi-loading">
                     <FaCompass /> Chargement des points d'intérêt...
                 </p>
             )}
 
-            {/* ── CARTE ── */}
             <div className="sr-map">
                 <MapContainer
                     key={`${center[0]}-${center[1]}`}
@@ -560,7 +548,7 @@ export default function SearchResult() {
                         <Marker key={`hotel-${i}`} position={[h.lat, h.lon]} icon={hotelIcon}>
                             <Popup>
                                 <strong>{h.name}</strong><br />
-                                {h.stars && <>{("★").repeat(h.stars)}{"☆".repeat(Math.max(0, 5 - h.stars))}<br /></>}
+                                {h.stars && <>{Array.from({length: h.stars}, (_, i) => <FaStar key={i} />)}{Array.from({length: Math.max(0, 5 - h.stars)}, (_, i) => <FaRegStar key={i} />)}<br /></>}
                                 {h.distance_km_from_station} km de la gare
                             </Popup>
                         </Marker>
@@ -581,7 +569,7 @@ export default function SearchResult() {
                             <Popup>
                                 <strong>{a.name || "Activité"}</strong><br />
                                 {a.distance_km_from_station} km · {a.category}
-                                {a.cuisine && <><br />🍽 {a.cuisine}</>}
+                                {a.cuisine && <><br /><FaUtensils /> {a.cuisine}</>}
                                 {a.price_range && <><br />{a.price_range}</>}
                             </Popup>
                         </Marker>
@@ -599,8 +587,6 @@ export default function SearchResult() {
                 </MapContainer>
             </div>
 
-            {/* ── LISTES POI ── */}
-
             {showHotels && hotels.length > 0 && (
                 <section className="sr-poi-section sr-poi-hotels">
                     <h3 className="sr-poi-section-title"><FaHotel /> Hôtels près de {trajet.to_city}</h3>
@@ -610,7 +596,8 @@ export default function SearchResult() {
                                 <div className="sr-poi-card-name">{h.name}</div>
                                 {h.stars && (
                                     <div className="sr-poi-card-stars">
-                                        {"★".repeat(h.stars)}{"☆".repeat(Math.max(0, 5 - h.stars))}
+                                        {Array.from({length: h.stars}, (_, i) => <FaStar key={i} />)}
+                                        {Array.from({length: Math.max(0, 5 - h.stars)}, (_, i) => <FaRegStar key={i} />)}
                                     </div>
                                 )}
                                 <div className="sr-poi-card-dist"><FaMapMarkerAlt /> {h.distance_km_from_station} km</div>
@@ -676,9 +663,8 @@ export default function SearchResult() {
                 </section>
             )}
 
-            </> /* fin onglet résultats */}
+            </>}
 
-            {/* ══════════════ ONGLET TRANSPORTS ══════════════ */}
             {activeTab === "transport" && (
                 <div className="sr-transport-tab">
                     {!localTransport ? (

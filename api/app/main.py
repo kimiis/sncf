@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import pandas as pd
@@ -853,7 +852,6 @@ def get_activities_near(
     Activités OSM proches
     [{name, lat, lon, distance_km_from_station, category}, ...]
     """
-    # print(f"[DEBUG] Recherche activites autour de ({lat_gare}, {lon_gare}) rayon={radius_m}m")
     query = f"""
     [out:json][timeout:25];
     (
@@ -1200,10 +1198,6 @@ def get_destinations():
     return shuffled
 
 
-# ══════════════════════════════════════════════════════════════════════════
-#  ML — Chargement des modèles (K-Means + XGBoost)
-#  Les modèles sont générés via : python ml/train.py
-# ══════════════════════════════════════════════════════════════════════════
 import json as _json
 
 _ML_DIR = os.path.join(ROOT_DIR, "ml", "models")
@@ -1338,23 +1332,42 @@ def ml_report():
     return _ml_report
 
 
-# ══════════════════════════════════════════════════════════════════════════
-#  TRANSPORTS EN COMMUN LOCAUX — Adapters par réseau
-# ══════════════════════════════════════════════════════════════════════════
-
 IDFM_API_KEY = os.getenv("IDFM_API_KEY", "")
 IDFM_BASE    = "https://prim.iledefrance-mobilites.fr/marketplace"
+
+# Okina — gateways par réseau
+OKINA_GATEWAYS = {
+    "cae": {"url": "https://api.okina.fr/gateway/cae/gtfsrt/realtime", "gtfsrt": True},
+    "lro": {"url": "https://api.okina.fr/gateway/lro/realtime",        "gtfsrt": False},
+    "nam": {"url": "https://api.okina.fr/gateway/nam/realtime",        "gtfsrt": False},
+    "mrn": {"url": "https://api.okina.fr/gateway/mrn/realtime",        "gtfsrt": False},
+}
 
 # Mapping ville (minuscules) → (adapter, lat_gare, lon_gare)
 CITY_TRANSPORT_CONFIG = {
     # Île-de-France → IDFM PRIM
-    "paris":      ("idfm", 48.8448,  2.3736),
-    "versailles": ("idfm", 48.7990,  2.1386),
-    "massy":      ("idfm", 48.7257,  2.2716),
-    "saint-denis":("idfm", 48.9362,  2.3574),
+    "paris":       ("idfm", 48.8448,  2.3736),
+    "versailles":  ("idfm", 48.7990,  2.1386),
+    "massy":       ("idfm", 48.7257,  2.2716),
+    "saint-denis": ("idfm", 48.9362,  2.3574),
     # Loire-Atlantique — réseau TAN
     "nantes":        ("tan", 47.2173, -1.5418),
     "saint-nazaire": ("tan", 47.2734, -2.2074),
+    # Normandie — réseau Twisto (Caen) / Astuce (Rouen)
+    "caen":  ("okina_cae", 49.1825, -0.3708),
+    "rouen": ("okina_mrn", 49.4432,  1.0993),
+    # Nouvelle-Aquitaine — réseau NAM
+    "bordeaux":   ("okina_nam", 44.8278, -0.5561),
+    "biarritz":   ("okina_nam", 43.4832, -1.5586),
+    "bayonne":    ("okina_nam", 43.4929, -1.4748),
+    "pau":        ("okina_nam", 43.2951, -0.3708),
+    "angouleme":  ("okina_nam", 45.6500,  0.1561),
+    "angoulême":  ("okina_nam", 45.6500,  0.1561),
+    "perigueux":  ("okina_nam", 45.1850,  0.7214),
+    "périgueux":  ("okina_nam", 45.1850,  0.7214),
+    # La Rochelle — réseau RTCR
+    "la rochelle": ("okina_lro", 46.1591, -1.1520),
+    "la-rochelle": ("okina_lro", 46.1591, -1.1520),
 }
 _TAN_MODE = {0: "Tramway", 1: "Métro", 3: "Bus", 7: "Funiculaire", 11: "Trolleybus"}
 
@@ -1537,6 +1550,121 @@ def _idfm_departures(lat: float, lon: float, count: int = 20) -> list:
     return departures[:count]
 
 
+def _okina_departures(gateway_key: str, lat: float, lon: float, count: int = 20) -> list:
+    """Adapter générique pour les réseaux Okina (Caen, La Rochelle, NAM, Rouen)."""
+    cfg = OKINA_GATEWAYS[gateway_key]
+    url = cfg["url"]
+
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"[OKINA/{gateway_key}] fetch error: {e}")
+        return []
+
+    departures = []
+
+    if cfg["gtfsrt"]:
+        # ── GTFS-RT (protobuf) ─────────────────────────────────────────────
+        try:
+            from google.transit import gtfs_realtime_pb2
+        except ImportError:
+            print("[OKINA] gtfs-realtime-bindings non installé — pip install gtfs-realtime-bindings")
+            return []
+
+        try:
+            feed = gtfs_realtime_pb2.FeedMessage()
+            feed.ParseFromString(resp.content)
+        except Exception as e:
+            print(f"[OKINA/{gateway_key}] protobuf parse error: {e}")
+            return []
+
+        now = time.time()
+        seen = set()
+
+        for entity in feed.entity:
+            # Positions véhicules → filtrage géographique possible
+            if entity.HasField("vehicle"):
+                v   = entity.vehicle
+                pos = v.position
+                if pos.latitude and pos.longitude:
+                    if distance_haversine(lat, lon, pos.latitude, pos.longitude) > 1.5:
+                        continue
+                route_id = v.trip.route_id or "?"
+                ts       = v.timestamp or now
+                heure    = datetime.fromtimestamp(ts).strftime("%Hh%M")
+                key = (route_id, heure)
+                if key in seen:
+                    continue
+                seen.add(key)
+                departures.append({
+                    "heure": heure, "ligne": route_id, "direction": "",
+                    "mode": "Bus", "couleur": "#1A6BB5", "text_color": "#FFFFFF",
+                    "realtime": True, "arret": "",
+                })
+
+            # TripUpdates → prochains départs par trajet
+            elif entity.HasField("trip_update"):
+                tu       = entity.trip_update
+                route_id = tu.trip.route_id or "?"
+                for stu in tu.stop_time_update:
+                    dep_time = (stu.departure.time if stu.departure.time else
+                                stu.arrival.time   if stu.arrival.time   else 0)
+                    if dep_time and dep_time > now:
+                        heure = datetime.fromtimestamp(dep_time).strftime("%Hh%M")
+                        key   = (route_id, heure)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        departures.append({
+                            "heure": heure, "ligne": route_id, "direction": "",
+                            "mode": "Bus", "couleur": "#1A6BB5", "text_color": "#FFFFFF",
+                            "realtime": True, "arret": stu.stop_id,
+                        })
+                        break  # 1 prochain départ par trip
+
+    else:
+        # ── JSON générique Okina ───────────────────────────────────────────
+        try:
+            data = resp.json()
+        except Exception as e:
+            print(f"[OKINA/{gateway_key}] JSON parse error: {e}")
+            return []
+
+        # Le feed peut être une liste directe ou enveloppé dans {"entity": [...]}
+        entities = data if isinstance(data, list) else data.get("entity", data.get("features", []))
+        now  = time.time()
+        seen = set()
+
+        for item in entities:
+            # Format vehicle position JSON (similaire GTFS-RT mais en JSON)
+            v = item.get("vehicle", item)
+            pos   = v.get("position", {})
+            vlat  = pos.get("latitude")
+            vlon  = pos.get("longitude")
+            if vlat and vlon and distance_haversine(lat, lon, float(vlat), float(vlon)) > 2.0:
+                continue
+
+            trip     = v.get("trip", {})
+            route_id = trip.get("routeId") or trip.get("route_id") or item.get("routeId", "?")
+            ts       = v.get("timestamp") or item.get("timestamp")
+            heure    = datetime.fromtimestamp(int(ts)).strftime("%Hh%M") if ts else "—"
+            direction = trip.get("tripHeadsign") or trip.get("headsign") or ""
+
+            key = (route_id, heure, direction)
+            if key in seen:
+                continue
+            seen.add(key)
+            departures.append({
+                "heure": heure, "ligne": str(route_id), "direction": direction,
+                "mode": "Bus", "couleur": "#1A6BB5", "text_color": "#FFFFFF",
+                "realtime": True, "arret": "",
+            })
+
+    departures.sort(key=lambda d: d["heure"])
+    return departures[:count]
+
+
 @app.get("/transport/city-departures")
 def city_transport_departures(
     city:  str   = Query(...,  description="Nom de la ville"),
@@ -1565,6 +1693,14 @@ def city_transport_departures(
         departures = _tan_departures(use_lat, use_lon, count)
     elif adapter == "idfm":
         departures = _idfm_departures(use_lat, use_lon, count)
+    elif adapter == "okina_cae":
+        departures = _okina_departures("cae", use_lat, use_lon, count)
+    elif adapter == "okina_lro":
+        departures = _okina_departures("lro", use_lat, use_lon, count)
+    elif adapter == "okina_nam":
+        departures = _okina_departures("nam", use_lat, use_lon, count)
+    elif adapter == "okina_mrn":
+        departures = _okina_departures("mrn", use_lat, use_lon, count)
     else:
         departures = []
 

@@ -3,153 +3,32 @@ const axios = require("axios");
 const router = express.Router();
 
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:9000";
-const TIMEOUT = 5000; // 5 secondes
 
-// Proxy vers FastAPI - Autocomplete
-router.get("/autocomplete", async (req, res) => {
+const proxy = (url, timeout = 5000) => async (req, res) => {
     try {
-        const response = await axios.get(`${FASTAPI_URL}/autocomplete`, {
-            params: req.query,
-            timeout: TIMEOUT,
-        });
+        const response = await axios.get(url, { params: req.query, timeout });
         res.json(response.data);
     } catch (error) {
-        console.error("Erreur autocomplete:", error.code || error.message);
+        console.error(`Erreur ${url}:`, error.code || error.message);
         if (error.code === "ECONNREFUSED") {
             res.status(503).json({ error: "FastAPI non disponible. Lancez: uvicorn api.app.main:app --reload --port 9000" });
         } else {
-            res.status(500).json({ error: "Erreur lors de l'autocomplete" });
+            res.status(error.response?.status || 500).json({ error: error.response?.data?.detail || "Erreur serveur" });
         }
     }
-});
+};
 
-// Proxy vers FastAPI - Liste des gares
-router.get("/gares", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/gares`, {
-            timeout: TIMEOUT,
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur gares:", error.code || error.message);
-        if (error.code === "ECONNREFUSED") {
-            res.status(503).json({ error: "FastAPI non disponible. Lancez: uvicorn api.app.main:app --reload --port 9000" });
-        } else {
-            res.status(500).json({ error: "Erreur lors de la récupération des gares" });
-        }
-    }
-});
+router.get("/autocomplete",   proxy(`${FASTAPI_URL}/autocomplete`));
+router.get("/gares",          proxy(`${FASTAPI_URL}/gares`));
+router.get("/gare-proche",    proxy(`${FASTAPI_URL}/gare-proche`));
+router.get("/departures",     proxy(`${FASTAPI_URL}/departures`, 10000));
+router.get("/disruptions",    proxy(`${FASTAPI_URL}/disruptions`, 10000));
+router.get("/reachable",      proxy(`${FASTAPI_URL}/reachable`, 15000));
+router.get("/ml/report",      proxy(`${FASTAPI_URL}/ml/report`));
+router.get("/destinations",   proxy(`${FASTAPI_URL}/sncf/destinations`, 60000));
+router.get("/trajet",         proxy(`${FASTAPI_URL}/trajet`, 30000));
+router.get("/trajet/poi",     proxy(`${FASTAPI_URL}/trajet/poi`, 60000));
 
-// Proxy vers FastAPI - Trajet
-router.get("/trajet", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/trajet`, {
-            params: req.query,
-            timeout: 30000, // 30s pour trajet (appels Overpass lents)
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur trajet:", error.code || error.message);
-        if (error.code === "ECONNREFUSED") {
-            res.status(503).json({ error: "FastAPI non disponible. Lancez: uvicorn api.app.main:app --reload --port 9000" });
-        } else {
-            res.status(500).json({ error: "Erreur lors de la récupération du trajet" });
-        }
-    }
-});
-
-// Proxy vers FastAPI - POI proches des gares (hotels, velos, activites, parkings)
-router.get("/trajet/poi", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/trajet/poi`, {
-            params: req.query,
-            timeout: 60000, // 60s pour les appels Overpass
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur trajet/poi:", error.code || error.message);
-        if (error.code === "ECONNREFUSED") {
-            res.status(503).json({ error: "FastAPI non disponible." });
-        } else {
-            res.status(500).json({ error: "Erreur lors de la récupération des POI" });
-        }
-    }
-});
-
-// Proxy vers FastAPI - Gare la plus proche (géolocalisation)
-router.get("/gare-proche", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/gare-proche`, {
-            params: req.query,
-            timeout: TIMEOUT,
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur gare-proche:", error.code || error.message);
-        res.status(500).json({ error: "Erreur géolocalisation" });
-    }
-});
-
-// Proxy vers FastAPI - Destinations coup de coeur
-router.get("/destinations", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/sncf/destinations`, {
-            timeout: 60000,
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur destinations:", error.code || error.message);
-        if (error.code === "ECONNREFUSED") {
-            res.status(503).json({ error: "FastAPI non disponible." });
-        } else {
-            res.status(500).json({ error: "Erreur lors de la récupération des destinations" });
-        }
-    }
-});
-
-// Tableau de départs temps réel (Navitia)
-router.get("/departures", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/departures`, {
-            params: req.query,
-            timeout: 10000,
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur departures:", error.code || error.message);
-        res.status(500).json({ departures: [] });
-    }
-});
-
-// Perturbations trafic (Navitia)
-router.get("/disruptions", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/disruptions`, {
-            params: req.query,
-            timeout: 10000,
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur disruptions:", error.code || error.message);
-        res.status(500).json({ disruptions: [] });
-    }
-});
-
-// Destinations atteignables depuis une gare (basé sur distances Excel SNCF)
-router.get("/reachable", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/reachable`, {
-            params: req.query,
-            timeout: 15000,
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur reachable:", error.code || error.message);
-        res.status(500).json({ stations: [] });
-    }
-});
-
-// Prédiction ML — XGBoost prix + rapport d'évaluation
 router.get("/ml/predict-price", async (req, res) => {
     try {
         const response = await axios.get(`${FASTAPI_URL}/ml/predict-price`, {
@@ -167,17 +46,6 @@ router.get("/ml/predict-price", async (req, res) => {
     }
 });
 
-router.get("/ml/report", async (req, res) => {
-    try {
-        const response = await axios.get(`${FASTAPI_URL}/ml/report`, { timeout: 5000 });
-        res.json(response.data);
-    } catch (error) {
-        console.error("Erreur ml/report:", error.code || error.message);
-        res.status(500).json({ error: "Rapport ML non disponible" });
-    }
-});
-
-// Transports en commun locaux (bus, tram, métro) via Navitia.io
 router.get("/transport/city-departures", async (req, res) => {
     try {
         const response = await axios.get(`${FASTAPI_URL}/transport/city-departures`, {
@@ -187,11 +55,7 @@ router.get("/transport/city-departures", async (req, res) => {
         res.json(response.data);
     } catch (error) {
         console.error("Erreur transport local:", error.code || error.message);
-        if (error.response?.status === 503) {
-            res.status(503).json({ departures: [], message: "Clé Navitia manquante (NAVITIA_API_KEY)" });
-        } else {
-            res.status(200).json({ departures: [], message: "Transports locaux non disponibles" });
-        }
+        res.status(200).json({ departures: [], message: "Transports locaux non disponibles" });
     }
 });
 

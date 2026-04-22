@@ -24,26 +24,19 @@ const AuthModal = ({ isOpen, onClose }) => {
 
         try {
             if (isLogin) {
-                // --- 🔐 Connexion ---
                 const response = await api.post("/auth/login", {
                     email: formData.email,
                     password: formData.password,
                 });
-
-                // Stocker le token et fermer la modal
                 localStorage.setItem("token", response.data.token);
                 alert("Connexion réussie !");
                 onClose();
-
             } else {
-                // --- 🧾 Inscription ---
                 const token = localStorage.getItem("token");
                 const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-
                 await api.post("/users", formData, config);
-
                 alert("Utilisateur créé avec succès !");
-                setIsLogin(true); // revenir sur le mode login
+                setIsLogin(true);
             }
         } catch (error) {
             console.error("Erreur :", error);

@@ -1,28 +1,4 @@
 #!/usr/bin/env python3
-"""
-Pipeline ML — RailGo SNCF
-═══════════════════════════════════════════════════════════════
-Algorithmes entraînés et comparés
-  • K-Means            — clustering géographique des gares (6 zones)
-  • Logistic Regression — baseline linéaire
-  • Random Forest       — ensemble d'arbres de décision
-  • XGBoost             — gradient boosting (modèle retenu)
-  • SVM (kernel RBF)    — séparateur à vaste marge
-
-Justification du choix final : XGBoost
-  → Meilleur F1-macro sur données tabulaires déséquilibrées
-  → Gère nativement les relations non-linéaires distance/prix
-  → Exportable (.json) et léger en inférence
-  → Ne nécessite pas de série temporelle (contrairement à Prophet)
-
-Données source : Data/DataLake/processed/
-Modèles exportés : ml/models/
-Rapport complet  : ml/models/rapport_evaluation.json
-═══════════════════════════════════════════════════════════════
-Usage :
-    pip install -r ml/requirements.txt
-    python ml/train.py
-"""
 import os
 import json
 import time
@@ -50,14 +26,12 @@ from sklearn.metrics import (
 from xgboost import XGBClassifier
 import joblib
 
-# ── Chemins ────────────────────────────────────────────────────────────────
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, "Data", "DataLake", "processed")
 MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371.0
     φ1, φ2 = radians(lat1), radians(lat2)
@@ -113,9 +87,7 @@ def evaluate(name: str, model, X_tr, y_tr, X_te, y_te, le, multi_class="ovr") ->
     return {"model": name, **metrics}
 
 
-# ══════════════════════════════════════════════════════════════════════════
-# ÉTAPE 1 — Chargement des données
-# ══════════════════════════════════════════════════════════════════════════
+# Étape 1 — Chargement des données
 print("\n[1/6] Chargement des données SNCF Open Data…")
 df_gares = pd.read_excel(os.path.join(DATA_DIR, "gares.xlsx"))
 df_tarif  = pd.read_excel(os.path.join(DATA_DIR, "tarifs-tgv.xlsx"))
@@ -128,9 +100,7 @@ df_tarif.dropna(
 )
 print(f"  → {len(df_gares)} gares  |  {len(df_tarif)} tarifs TGV")
 
-# ══════════════════════════════════════════════════════════════════════════
-# ÉTAPE 2 — K-Means : clustering géographique des gares
-# ══════════════════════════════════════════════════════════════════════════
+# Étape 2 — K-Means clustering géographique des gares
 print("\n[2/6] K-Means — clustering géographique des gares…")
 
 geo_parsed = df_gares["Geo Point"].apply(
@@ -173,9 +143,7 @@ for k in range(1, 11):
     else:
         elbow_sil.append(None)
 
-# ══════════════════════════════════════════════════════════════════════════
-# ÉTAPE 3 — Construction du dataset routes
-# ══════════════════════════════════════════════════════════════════════════
+# Étape 3 — Construction du dataset routes
 print("\n[3/6] Construction du dataset routes…")
 
 gares_lookup = df_gares_coords.set_index("CODE_UIC")[["lat", "lon", "cluster"]]
@@ -208,9 +176,7 @@ for _, row in df_tarif.iterrows():
 df_routes = pd.DataFrame(routes)
 print(f"  → {len(df_routes)} routes valides")
 
-# ══════════════════════════════════════════════════════════════════════════
-# ÉTAPE 4 — Feature engineering & encodage des cibles
-# ══════════════════════════════════════════════════════════════════════════
+# Étape 4 — Feature engineering
 print("\n[4/6] Feature engineering…")
 
 PRICE_BINS   = [0, 40, 80, 150, float("inf")]
@@ -243,9 +209,7 @@ Xs_tr, Xs_te, _,    _    = train_test_split(X_scaled, y, test_size=0.2, random_s
 
 print(f"  Train: {len(X_tr)}  |  Test: {len(X_te)}")
 
-# ══════════════════════════════════════════════════════════════════════════
-# ÉTAPE 5 — Comparaison de 4 modèles de classification
-# ══════════════════════════════════════════════════════════════════════════
+# Étape 5 — Comparaison des modèles
 print("\n[5/6] Comparaison des modèles de classification…")
 print("  " + "─" * 75)
 
@@ -285,9 +249,7 @@ for i, r in enumerate(ranking, 1):
 best_model_name = ranking[0]["model"]
 print(f"\n  → Meilleur modèle : {best_model_name}")
 
-# ══════════════════════════════════════════════════════════════════════════
-# ÉTAPE 6 — Sauvegarde des modèles et du rapport
-# ══════════════════════════════════════════════════════════════════════════
+# Étape 6 — Sauvegarde
 print("\n[6/6] Sauvegarde…")
 
 joblib.dump(kmeans,      os.path.join(MODELS_DIR, "kmeans_gares.pkl"))
@@ -305,7 +267,6 @@ np.save(os.path.join(MODELS_DIR, "y_proba_svm.npy"),  svm.predict_proba(Xs_te))
 np.save(os.path.join(MODELS_DIR, "gares_coords.npy"),
         df_gares_coords[["lat", "lon", "cluster"]].values)
 
-# ── Rapport JSON complet ───────────────────────────────────────────────────
 def model_report(name, res, hp, notes):
     return {"algorithm": name, "hyperparameters": hp,
             "metrics": {k: res[k] for k in

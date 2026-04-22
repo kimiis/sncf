@@ -1352,15 +1352,13 @@ CITY_TRANSPORT_CONFIG = {
     "versailles": ("idfm", 48.7990,  2.1386),
     "massy":      ("idfm", 48.7257,  2.2716),
     "saint-denis":("idfm", 48.9362,  2.3574),
-    # Loire-Atlantique — réseau TAN (Nantes Métropole)
+    # Loire-Atlantique — réseau TAN
     "nantes":        ("tan", 47.2173, -1.5418),
     "saint-nazaire": ("tan", 47.2734, -2.2074),
 }
-
-# Type de ligne TAN → libellé mode
 _TAN_MODE = {0: "Tramway", 1: "Métro", 3: "Bus", 7: "Funiculaire", 11: "Trolleybus"}
 
-# Couleurs officielles lignes TAN (bg, fg)
+# Couleurs lignes TAN (bg, fg)
 _TAN_LINE_COLORS = {
     "1":  ("#EE1C25", "#FFFFFF"),
     "2":  ("#006DB7", "#FFFFFF"),
@@ -1377,7 +1375,7 @@ _TAN_LINE_COLORS = {
 
 
 def _tan_departures(lat: float, lon: float, count: int = 20) -> list:
-    """Prochains passages réseau TAN (Nantes) — open.tan.fr, sans token."""
+    """Prochains passages réseau TAN( — open.tan.fr, sans token."""
     try:
         stops = requests.get(
             f"https://open.tan.fr/ewp/arrets.json/{lat}/{lon}", timeout=6
@@ -1386,7 +1384,6 @@ def _tan_departures(lat: float, lon: float, count: int = 20) -> list:
         print(f"[TAN] arrets error: {e}")
         return []
 
-    # Prendre plus d'arrêts pour couvrir toutes les lignes (tram peut être plus loin)
     departures = []
     seen_ligne_dir = set()   # déduplique par (ligne, direction) — 1 passage par sens
 
@@ -1447,7 +1444,7 @@ def _idfm_departures(lat: float, lon: float, count: int = 20) -> list:
 
     headers = {"apikey": IDFM_API_KEY}
 
-    # 1. Arrêts proches des coordonnées
+    # Arrêts proches des coordonnées
     try:
         nearby = requests.get(
             f"{IDFM_BASE}/v2/navitia/coords/{lon};{lat}/places_nearby",
@@ -1462,7 +1459,7 @@ def _idfm_departures(lat: float, lon: float, count: int = 20) -> list:
     if not stop_points:
         return []
 
-    # 2. Cache lignes (code + couleur) depuis le 1er arrêt
+    # Cache lignes (code + couleur) depuis le 1er arrêt
     line_cache = {}  # "C01384" → {code, color, text_color, mode}
     try:
         lines_data = requests.get(
@@ -1480,7 +1477,7 @@ def _idfm_departures(lat: float, lon: float, count: int = 20) -> list:
     except Exception as e:
         print(f"[IDFM] lines cache error: {e}")
 
-    # 3. Départs SIRI pour chaque arrêt
+    # Départs SIRI pour chaque arrêt
     departures = []
     seen = set()
 

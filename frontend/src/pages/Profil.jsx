@@ -24,8 +24,14 @@ function Profil() {
     const DEFI_OBJECTIF = 50; // kg CO2 à économiser cette semaine
 
     useEffect(() => {
+        const onExpired = () => navigate("/");
+        window.addEventListener("auth:expired", onExpired);
+        return () => window.removeEventListener("auth:expired", onExpired);
+    }, [navigate]);
+
+    useEffect(() => {
         if (!isAuthenticated) {
-            navigate("/login");
+            navigate("/");
             return;
         }
 
@@ -41,33 +47,25 @@ function Profil() {
 
         fetchUserData();
 
-        // Historique depuis BDD, fallback localStorage
         const fetchHistory = async () => {
             try {
                 const { data } = await api.get("/trajet/history");
-                const mapped = data.map((h) => {
-                    let extra = {};
-                    try { extra = JSON.parse(h.type_train || "{}"); } catch {}
-                    return {
-                        id: h.search_history_id,
-                        from: h.gare_depart,
-                        to: h.gare_arrivee,
-                        date: h.created_at,
-                        duration: extra.duree || "N/A",
-                        co2Saved: extra.co2_economise || "N/A",
-                        price: extra.prix || "N/A",
-                    };
-                });
+                const mapped = data.map((h) => ({
+                    id: h.search_history_id,
+                    from: h.gare_depart,
+                    to: h.gare_arrivee,
+                    date: h.created_at,
+                    duration: h.duree || "N/A",
+                    co2Saved: h.co2_economise || "N/A",
+                    price: h.prix || "N/A",
+                }));
                 setHistoriqueComplet(mapped);
                 setHistorique(mapped.slice(0, 5));
             } catch {
-                const local = JSON.parse(localStorage.getItem("trajetHistorique") || "[]");
-                setHistoriqueComplet(local);
-                setHistorique(local.slice(0, 5));
+                // 401 handled by axios interceptor (auth:expired event)
             }
         };
 
-        // Favoris depuis BDD, fallback localStorage
         const fetchFavorites = async () => {
             try {
                 const { data } = await api.get("/trajet/favorites");
@@ -78,8 +76,7 @@ function Profil() {
                     date: f.created_at,
                 })));
             } catch {
-                const local = JSON.parse(localStorage.getItem("trajetFavoris") || "[]");
-                setFavoris(local);
+                // 401 handled by axios interceptor (auth:expired event)
             }
         };
 

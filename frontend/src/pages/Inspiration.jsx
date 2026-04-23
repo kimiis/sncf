@@ -100,19 +100,6 @@ export default function Inspiration() {
                 <p>Partez en train, voyagez responsable</p>
             </header>
 
-            {/* Ville de départ */}
-            <section className="inspiration-depart">
-                <label>
-                    <FaTrain /> Depuis :
-                    <input
-                        type="text"
-                        value={fromCity}
-                        onChange={(e) => setFromCity(e.target.value)}
-                        placeholder="Votre ville de départ"
-                    />
-                </label>
-            </section>
-
             {/* Filtres par tag */}
             <div className="inspiration-filters">
                 {TAGS_FILTERS.map(({ key, label }) => (

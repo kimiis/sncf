@@ -154,7 +154,7 @@ export default function SearchResult() {
         api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
             .then(({ data }) => setMlPrediction(data))
             .catch(() => {});
-    }, [fromCity, toCity, travelDate, isAuthenticated, userId]);
+    }, [fromCity, toCity, travelDate]); // isAuthenticated/userId exclus : leur changement ne doit pas re-déclencher la recherche
 
     useEffect(() => {
         if (!trajet) return;

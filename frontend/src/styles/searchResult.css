@@ -812,9 +812,9 @@ body.dark .sr-alert-form input { background: var(--bg-section); border-color: va
 .sr-tabs {
     display: flex;
     gap: 0;
-    background: #2D5443;
+    background: #8B9E6A;
     padding: 0 1rem;
-    margin-top: 0.5rem;
+    margin-block: 0.1rem;
 }
 
 .sr-tab {
@@ -823,8 +823,9 @@ body.dark .sr-alert-form input { background: var(--bg-section); border-color: va
     gap: 0.4rem;
     padding: 0.85rem 1.25rem;
     background: transparent;
-    border: none;
-    border-bottom: 3px solid transparent;
+    border: 2px solid #2D5443 ;
+    border-radius: 5px;
+    border-bottom: 3px solid transparent ;
     color: rgba(255,255,255,0.6);
     font-family: "Poppins", sans-serif;
     font-size: 0.88rem;
@@ -837,6 +838,7 @@ body.dark .sr-alert-form input { background: var(--bg-section); border-color: va
 .sr-tab--active {
     color: #fff;
     border-bottom-color: #EDD9BE;
+    background: #2D5443;
 }
 
 .sr-tab-badge {

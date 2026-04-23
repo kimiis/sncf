@@ -158,13 +158,13 @@ Le backend Node.js est la **seule porte d'entrée** du frontend. Il a deux missi
 **Modèles :**
 
 ```
-User          — id, username, email, password (bcrypt), role_id
-Role          — id, name (user / admin)
+User            — id, username, email, password (bcrypt), role_id
+Role            — id, name (user / admin)
 FavoriteItinary — id, user_id, gare_depart, gare_arrivee, created_at
-SearchHistory — id, user_id, gare_depart, gare_arrivee, date_recherche, type_train (TEXT/JSON), created_at
+SearchHistory   — id, user_id, gare_depart, gare_arrivee, date_recherche, type_train (VARCHAR(50)), created_at
 ```
 
-Le modèle `SearchHistory.type_train` est de type `TEXT` (et non `VARCHAR(50)`) car il stocke un objet JSON sérialisé contenant `{ duree, co2_economise, prix }`.
+`SearchHistory.type_train` est un `VARCHAR(50)` qui stocke la durée du trajet.
 
 ### Middlewares notables
 

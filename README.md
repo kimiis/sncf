@@ -227,7 +227,7 @@ Application accessible sur `http://localhost:3000`.
 
 **favorites_gares** - Gares favorites. Champs : favorites_gare_id, user_id (FK), gare_code, gare_nom, region, created_at.
 
-**search_history** - Historique des recherches. Champs : search_history_id, user_id (FK), gare_depart, gare_arrivee, date_recherche, type_train (JSON : duree, co2_economise, prix indicatif), created_at.
+**search_history** - Historique des recherches. Champs : search_history_id, user_id (FK), gare_depart, gare_arrivee, date_recherche, type_train (VARCHAR(50) : duree du trajet), created_at.
 
 ---
 
@@ -267,7 +267,7 @@ Coefficient ADEME fixe de 0.255 kg/km par passager. Affiche uniquement pour les 
 Source : `tarifs-tgv.xlsx`, jeu de donnees SNCF Open Data. Ce fichier contient des fourchettes de prix min/max par trajet issu de statistiques historiques. Ce sont des tarifs de reference, pas des prix de billets disponibles a la vente. L'interface precise explicitement "prix indicatif - tarif de reference SNCF Open Data". Pour obtenir les vrais prix de billets en temps reel, il faudrait un accord commercial avec SNCF Connect (OUI.sncf), dont l'API de distribution n'est pas publique.
 
 **Destinations coup de coeur**
-Liste de 10 destinations codee en dur dans `api/app/main.py` avec des descriptions et des images Unsplash. Elle est melangee aleatoirement a chaque appel. Ce n'est pas dynamique : pour ajouter ou modifier une destination, il faut editer le code Python.
+Liste de 20 destinations codee en dur dans `api/app/main.py`. Les images et descriptions sont chargees dynamiquement depuis l'API Wikipedia au demarrage. Elle est melangee aleatoirement a chaque appel. Ce n'est pas dynamique : pour ajouter ou modifier une destination, il faut editer le code Python.
 
 ---
 

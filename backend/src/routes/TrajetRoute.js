@@ -84,7 +84,10 @@ router.post("/history", verifyToken, async (req, res) => {
             gare_depart,
             gare_arrivee,
             date_recherche: date_recherche || new Date().toISOString().split("T")[0],
-            type_train: JSON.stringify({ duree, co2_economise, prix }),
+            type_train: duree || "",
+            duree: duree || null,
+            co2_economise: co2_economise || null,
+            prix: prix || null,
         });
         res.status(201).json(entry);
     } catch (error) {

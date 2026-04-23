@@ -277,10 +277,6 @@ function Index() {
                 </p>
             </section>
 
-            {/* ── FOOTER ── */}
-            <footer className="index-footer">
-                <p>Voyager en train, c'est plus que se déplacer : <strong>c'est agir pour demain.</strong></p>
-            </footer>
 
         </div>
     );

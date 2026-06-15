@@ -549,7 +549,10 @@ export default function SearchResult() {
                             <Popup>
                                 <strong>{h.name}</strong><br />
                                 {h.stars && <>{Array.from({length: h.stars}, (_, i) => <FaStar key={i} />)}{Array.from({length: Math.max(0, 5 - h.stars)}, (_, i) => <FaRegStar key={i} />)}<br /></>}
-                                {h.distance_km_from_station} km de la gare
+                                {h.distance_km_from_station} km de la gare<br />
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lon}`} target="_blank" rel="noopener noreferrer" style={{color: "#4285F4", fontWeight: "bold"}}>
+                                    📍 Ouvrir dans Maps
+                                </a>
                             </Popup>
                         </Marker>
                     ))}

@@ -1,31 +1,32 @@
 require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
-//variables d'environnement
-const DB_NAME = process.env.DB_NAME || 'sncf';
-const DB_USER = process.env.DB_USER || 'postgres';
-const DB_PASS = process.env.DB_PASS || '';
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_PORT = Number(process.env.DB_PORT || 5432);
-const DB_SSL  = process.env.DB_SSL === 'true';
-
 const isTest = process.env.NODE_ENV === 'test';
+const DB_SSL  = process.env.DB_SSL !== 'false'; // SSL activé par défaut en prod
 
-// Configuration de Sequelize
-const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
-    host: DB_HOST,
-    port: DB_PORT,
-    dialect: 'postgres',
-    logging: isTest ? false : console.log, // désactive les logs en test
-    pool: {
-        max: 10,
-        min: 0,
-        idle: 10000,
-    },
-    dialectOptions: DB_SSL
-        ? { ssl: { require: true, rejectUnauthorized: false } }
-        : undefined,
-});
+// Railway fournit DATABASE_URL, sinon on utilise les variables séparées
+const sequelize = process.env.DATABASE_URL
+    ? new Sequelize(process.env.DATABASE_URL, {
+        dialect: 'postgres',
+        logging: isTest ? false : console.log,
+        pool: { max: 10, min: 0, idle: 10000 },
+        dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+    })
+    : new Sequelize(
+        process.env.DB_NAME || 'sncf',
+        process.env.DB_USER || 'postgres',
+        process.env.DB_PASS || '',
+        {
+            host: process.env.DB_HOST || 'localhost',
+            port: Number(process.env.DB_PORT || 5432),
+            dialect: 'postgres',
+            logging: isTest ? false : console.log,
+            pool: { max: 10, min: 0, idle: 10000 },
+            dialectOptions: DB_SSL
+                ? { ssl: { require: true, rejectUnauthorized: false } }
+                : undefined,
+        }
+    );
 
 /**
  * Initialise la connexion à la base

@@ -562,7 +562,10 @@ export default function SearchResult() {
                             <Popup>
                                 <strong>{b.name || "Station vélo"}</strong><br />
                                 {b.distance_km_from_station} km de la gare<br />
-                                {b.type === "bicycle_rental" ? "Location" : "Parking vélo"}
+                                {b.type === "bicycle_rental" ? "Location" : "Parking vélo"}<br />
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lon}`} target="_blank" rel="noopener noreferrer" style={{color: "#4285F4", fontWeight: "bold"}}>
+                                    📍 Ouvrir dans Maps
+                                </a>
                             </Popup>
                         </Marker>
                     ))}
@@ -573,7 +576,10 @@ export default function SearchResult() {
                                 <strong>{a.name || "Activité"}</strong><br />
                                 {a.distance_km_from_station} km · {a.category}
                                 {a.cuisine && <><br /><FaUtensils /> {a.cuisine}</>}
-                                {a.price_range && <><br />{a.price_range}</>}
+                                {a.price_range && <><br />{a.price_range}</>}<br />
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lon}`} target="_blank" rel="noopener noreferrer" style={{color: "#4285F4", fontWeight: "bold"}}>
+                                    📍 Ouvrir dans Maps
+                                </a>
                             </Popup>
                         </Marker>
                     ))}
@@ -583,7 +589,10 @@ export default function SearchResult() {
                             <Popup>
                                 <strong>{p.name}</strong><br />
                                 {p.distance_km_from_station} km de la gare
-                                {p.capacity && <><br />{p.capacity} places</>}
+                                {p.capacity && <><br />{p.capacity} places</>}<br />
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`} target="_blank" rel="noopener noreferrer" style={{color: "#4285F4", fontWeight: "bold"}}>
+                                    📍 Ouvrir dans Maps
+                                </a>
                             </Popup>
                         </Marker>
                     ))}

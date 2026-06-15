@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaTrain, FaLeaf, FaMapMarkedAlt } from "react-icons/fa";
+import { FaSearch, FaLeaf, FaMapMarkedAlt } from "react-icons/fa";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api/axios";

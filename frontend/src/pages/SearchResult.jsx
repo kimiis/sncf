@@ -65,7 +65,7 @@ export default function SearchResult() {
     const fromCity = params.get("from");
     const toCity   = params.get("to");
     const travelDate = params.get("date") || "";
-    const { isAuthenticated, id: userId } = useAuth();
+    const { isAuthenticated } = useAuth();
 
     const [trajet, setTrajet]               = useState(null);
     const [poi, setPoi]                     = useState(null);
@@ -154,7 +154,7 @@ export default function SearchResult() {
         api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
             .then(({ data }) => setMlPrediction(data))
             .catch(() => {});
-    }, [fromCity, toCity, travelDate]); // isAuthenticated/userId exclus : leur changement ne doit pas re-déclencher la recherche
+    }, [fromCity, toCity, travelDate, isAuthenticated]);
 
     useEffect(() => {
         if (!trajet) return;

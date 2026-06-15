@@ -646,6 +646,7 @@ def get_full_journey(from_code: int, to_code: int, travel_date: str = None):
         "to": f"stop_area:SNCF:{to_code}",
         "datetime": navitia_dt,
         "count": 5,
+        "geojson": "true",
     }
     response = requests.get(
         "https://api.sncf.com/v1/coverage/sncf/journeys",

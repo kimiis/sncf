@@ -1,0 +1,195 @@
+{
+  "generated_at": "2026-06-15T11:57:00.291811",
+  "pipeline": "Data Excel SNCF Open Data → Feature Engineering → K-Means (clustering) + comparaison 4 classificateurs → XGBoost retenu → API FastAPI → Visualisation React",
+  "dataset": {
+    "n_gares": 3884,
+    "n_routes": 17120,
+    "n_train": 13696,
+    "n_test": 3424,
+    "features": [
+      "distance_km",
+      "dist_log",
+      "dist_sq",
+      "origin_cluster",
+      "dest_cluster"
+    ],
+    "price_distribution": {
+      "BUDGET": 7915,
+      "STANDARD": 4225,
+      "CONFORT": 4180,
+      "PRESTIGE": 800
+    },
+    "price_ranges": {
+      "BUDGET": "0–40€",
+      "STANDARD": "40–80€",
+      "CONFORT": "80–150€",
+      "PRESTIGE": ">150€"
+    }
+  },
+  "kmeans": {
+    "algorithm": "K-Means",
+    "description": "Clustering géographique des gares françaises en 6 zones régionales",
+    "n_clusters": 6,
+    "features_used": [
+      "latitude (normalisée)",
+      "longitude (normalisée)"
+    ],
+    "metrics": {
+      "silhouette_score": 0.4573,
+      "davies_bouldin_score": 0.7651,
+      "inertia": 1201.98
+    },
+    "elbow_curve": {
+      "k_values": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "inertias": [
+        7768.0,
+        4825.52,
+        2970.0,
+        2004.23,
+        1410.31,
+        1202.2,
+        1016.5,
+        876.72,
+        767.7,
+        690.4
+      ],
+      "silhouette_scores": [
+        null,
+        0.3879,
+        0.424,
+        0.4378,
+        0.4687,
+        0.4556,
+        0.4195,
+        0.424,
+        0.4314,
+        0.4394
+      ]
+    }
+  },
+  "model_comparison": {
+    "objective": "Choisir le classificateur de prix le plus fiable sur les données SNCF",
+    "methodology": "Train/test split 80/20 stratifié — métrique principale : F1-macro",
+    "why_not_prophet": "Prophet est un modèle de prévision temporelle (time series). Il nécessite un historique horodaté de prix par trajet. Les tarifs SNCF Open Data sont des tarifs de référence statiques sans dimension temporelle → Prophet inapplicable.",
+    "ranking_by_f1_macro": [
+      {
+        "rank": 1,
+        "model": "XGBoost ← modèle retenu",
+        "f1_macro": 0.4065,
+        "accuracy": 0.5517,
+        "auc_roc_macro_ovr": 0.7415
+      },
+      {
+        "rank": 2,
+        "model": "Logistic Regression (baseline)",
+        "f1_macro": 0.3926,
+        "accuracy": 0.4518,
+        "auc_roc_macro_ovr": 0.7699
+      },
+      {
+        "rank": 3,
+        "model": "SVM (RBF kernel)",
+        "f1_macro": 0.3507,
+        "accuracy": 0.4255,
+        "auc_roc_macro_ovr": 0.7709
+      },
+      {
+        "rank": 4,
+        "model": "Random Forest",
+        "f1_macro": 0.3429,
+        "accuracy": 0.4098,
+        "auc_roc_macro_ovr": 0.7365
+      }
+    ],
+    "models": {
+      "logistic_regression": {
+        "algorithm": "Logistic Regression",
+        "hyperparameters": {
+          "max_iter": 1000,
+          "class_weight": "balanced"
+        },
+        "metrics": {
+          "accuracy": 0.4518,
+          "precision_macro": 0.4522,
+          "recall_macro": 0.4989,
+          "f1_macro": 0.3926,
+          "auc_roc_macro_ovr": 0.7699,
+          "train_time_s": 0.25
+        },
+        "notes": "Baseline linéaire. Rapide mais incapable de capturer les non-linéarités distance/prix."
+      },
+      "random_forest": {
+        "algorithm": "Random Forest",
+        "hyperparameters": {
+          "n_estimators": 200,
+          "max_depth": 8,
+          "class_weight": "balanced"
+        },
+        "metrics": {
+          "accuracy": 0.4098,
+          "precision_macro": 0.4013,
+          "recall_macro": 0.4318,
+          "f1_macro": 0.3429,
+          "auc_roc_macro_ovr": 0.7365,
+          "train_time_s": 1.007
+        },
+        "notes": "Robuste et interprétable. Bon candidat mais légèrement moins précis que XGBoost sur ce dataset."
+      },
+      "svm_rbf": {
+        "algorithm": "SVM (kernel RBF)",
+        "hyperparameters": {
+          "C": 1.0,
+          "gamma": "scale",
+          "kernel": "rbf",
+          "class_weight": "balanced"
+        },
+        "metrics": {
+          "accuracy": 0.4255,
+          "precision_macro": 0.4418,
+          "recall_macro": 0.502,
+          "f1_macro": 0.3507,
+          "auc_roc_macro_ovr": 0.7709,
+          "train_time_s": 81.318
+        },
+        "notes": "Efficace sur petits datasets. Lent à l'entraînement sur grand volume. Pas exportable en .json."
+      },
+      "xgboost": {
+        "algorithm": "XGBoost",
+        "hyperparameters": {
+          "n_estimators": 200,
+          "max_depth": 4,
+          "learning_rate": 0.1,
+          "subsample": 0.8,
+          "colsample_bytree": 0.8
+        },
+        "metrics": {
+          "accuracy": 0.5517,
+          "precision_macro": 0.4081,
+          "recall_macro": 0.4289,
+          "f1_macro": 0.4065,
+          "auc_roc_macro_ovr": 0.7415,
+          "train_time_s": 1.548
+        },
+        "notes": "RETENU. Meilleur F1-macro. Gère nativement les relations non-linéaires distance/prix. Léger en inférence. Exportable en .json (portable, indépendant de la version Python). Résistant aux outliers de prix."
+      }
+    },
+    "feature_importance_xgboost": {
+      "distance_km": 0.4593,
+      "dist_log": 0.4247,
+      "dist_sq": 0.0,
+      "origin_cluster": 0.0551,
+      "dest_cluster": 0.061
+    }
+  }
+}

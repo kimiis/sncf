@@ -210,9 +210,14 @@ def fetch_city_destination(idx, city):
         return None
 
 # CORS
+ALLOWED_ORIGINS = [
+    "https://sncf-five.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

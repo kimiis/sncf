@@ -689,14 +689,20 @@ def extract_route_coordinates(journey):
     sections = journey.get("sections", [])
 
     for section in sections:
-        # Récupérer les coordonnées depuis le geojson de la section
+        if section.get("type") == "crow_fly":
+            continue
         geojson = section.get("geojson", {})
-        if geojson and geojson.get("type") == "LineString":
-            coords = geojson.get("coordinates", [])
-            # GeoJSON utilise [lon, lat], on inverse pour Leaflet [lat, lon]
-            for coord in coords:
-                if len(coord) >= 2:
-                    coordinates.append([coord[1], coord[0]])
+        if not geojson:
+            continue
+        geo_type = geojson.get("type", "")
+        coords_raw = []
+        if geo_type == "LineString":
+            coords_raw = geojson.get("coordinates", [])
+        elif geo_type == "Feature":
+            coords_raw = geojson.get("geometry", {}).get("coordinates", [])
+        for coord in coords_raw:
+            if len(coord) >= 2:
+                coordinates.append([coord[1], coord[0]])
 
     return coordinates
 

@@ -41,6 +41,140 @@
 
 .sr-route-block { flex: 1; }
 
+.sr-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.sr-new-search-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.12);
+    border: 1.5px solid rgba(237,217,190,0.5);
+    color: #EDD9BE;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+.sr-new-search-btn:hover {
+    background: rgba(255,255,255,0.22);
+    border-color: #EDD9BE;
+}
+
+/* ── BARRE DE NOUVELLE RECHERCHE ─────────────── */
+.sr-search-overlay {
+    background: rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(237,217,190,0.25);
+    padding: 1rem 0;
+    margin-top: 1rem;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.sr-search-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-end;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.sr-search-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+    min-width: 150px;
+    position: relative;
+}
+
+.sr-search-field label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(237,217,190,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sr-search-field input {
+    border: 1.5px solid rgba(237,217,190,0.4);
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.875rem;
+    color: #2D5443;
+    background: #FAEEDD;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.sr-search-field input:focus { border-color: #EDD9BE; }
+
+.sr-search-sug {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 8px;
+    margin-top: 2px;
+    list-style: none;
+    padding: 0.25rem 0;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.sr-search-sug li {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: #2D5443;
+    cursor: pointer;
+}
+.sr-search-sug li:hover { background: #F5E8D0; }
+
+.sr-search-submit {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #A6706A;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.sr-search-submit:hover { background: #8F5E59; }
+
+.sr-search-cancel {
+    background: transparent;
+    border: 1.5px solid #D4C4A8;
+    border-radius: 8px;
+    color: #8A9A8F;
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+.sr-search-cancel:hover { border-color: #A6706A; color: #A6706A; }
+
 .sr-route-title {
     font-family: "Oswald", sans-serif;
     font-size: 1.5rem;
@@ -811,45 +945,51 @@ body.dark .sr-alert-form input { background: var(--bg-section); border-color: va
 /* ── ONGLETS ──────────────────────────────────────── */
 .sr-tabs {
     display: flex;
-    gap: 0;
-    background: #8B9E6A;
-    padding: 0 1rem;
-    margin-block: 0.1rem;
+    gap: 0.4rem;
+    background: #fff;
+    border-bottom: 2px solid #D4C4A8;
+    padding: 0 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .sr-tab {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.85rem 1.25rem;
+    gap: 0.5rem;
+    padding: 0.75rem 1.2rem;
     background: transparent;
-    border: 2px solid #2D5443 ;
-    border-radius: 5px;
-    border-bottom: 3px solid transparent ;
-    color: rgba(255,255,255,0.6);
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    color: #8A9A8F;
     font-family: "Poppins", sans-serif;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: color 0.2s, border-color 0.2s;
     white-space: nowrap;
+    border-radius: 0;
 }
-.sr-tab:hover { color: rgba(255,255,255,0.9); }
+.sr-tab:hover {
+    color: #2D5443;
+    background: #F5E8D0;
+    border-radius: 6px 6px 0 0;
+}
 .sr-tab--active {
-    color: #fff;
-    border-bottom-color: #EDD9BE;
-    background: #2D5443;
+    color: #2D5443;
+    border-bottom-color: #A6706A;
 }
 
 .sr-tab-badge {
-    background: #8B9E6A;
+    background: #A6706A;
     color: #fff;
     font-size: 0.65rem;
     font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
     min-width: 18px;
     text-align: center;
+    line-height: 1.4;
 }
 
 /* ── ONGLET TRANSPORT ─────────────────────────────── */

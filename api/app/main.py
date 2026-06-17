@@ -1236,6 +1236,28 @@ try:
 except Exception as _ml_exc:
     print(f"[ML] Modèles non disponibles ({_ml_exc}) — exécutez : python ml/train.py")
 
+# Régresseur prix exact
+_ml_reg_ready = False
+_ml_xgb_reg   = None
+_ml_reg_mae   = 25.91
+_ml_reg_pct20 = 53.1
+
+try:
+    from xgboost import XGBRegressor as _XGBRegressor
+    _ml_xgb_reg = _XGBRegressor(verbosity=0)
+    _ml_xgb_reg.load_model(os.path.join(_ML_DIR, "xgb_price_regressor.json"))
+    try:
+        with open(os.path.join(_ML_DIR, "rapport_regression.json"), encoding="utf-8") as _f:
+            _reg_report = _json.load(_f)
+            _ml_reg_mae   = _reg_report["metrics"]["mae_eur"]
+            _ml_reg_pct20 = _reg_report["metrics"]["pct_within_20eur"]
+    except Exception:
+        pass
+    _ml_reg_ready = True
+    print("[ML] Régresseur prix chargé ✓")
+except Exception as _reg_exc:
+    print(f"[ML] Régresseur non disponible ({_reg_exc})")
+
 
 def _get_cluster(lat: float, lon: float) -> int:
     """Assigne un cluster K-Means à partir des coordonnées GPS."""
@@ -1326,6 +1348,63 @@ def ml_predict_price(
             "CONFORT":  "80–150 €",
             "PRESTIGE": "> 150 €",
         },
+    }
+
+
+@app.get("/ml/predict-price-exact")
+def ml_predict_price_exact(
+    from_city: str = Query(...),
+    to_city:   str = Query(...),
+    distance_km: float = Query(None),
+):
+    """Prédit un prix exact en € via XGBoost Regressor."""
+    if not _ml_reg_ready:
+        raise HTTPException(status_code=503, detail="Régresseur ML non disponible.")
+    if not _ml_ready:
+        raise HTTPException(status_code=503, detail="Modèles ML non disponibles.")
+
+    orig_coords = dest_coords = None
+    try:
+        orig_code = get_code_uic(from_city)
+        dest_code = get_code_uic(to_city)
+        if orig_code:
+            orig_coords = get_coords(orig_code)
+        if dest_code:
+            dest_coords = get_coords(dest_code)
+    except Exception:
+        pass
+
+    if not distance_km or distance_km <= 0:
+        if orig_coords and dest_coords:
+            distance_km = distance_haversine(
+                orig_coords[0], orig_coords[1],
+                dest_coords[0], dest_coords[1],
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Distance ou noms de villes invalides.")
+
+    orig_cluster = _get_cluster(*orig_coords) if orig_coords else 0
+    dest_cluster = _get_cluster(*dest_coords) if dest_coords else 0
+
+    import numpy as _np2
+    features = _np2.array([[
+        float(distance_km),
+        _np2.log1p(float(distance_km)),
+        float(distance_km) ** 2,
+        orig_cluster,
+        dest_cluster,
+    ]])
+    prix_estime = float(_ml_xgb_reg.predict(features)[0])
+    prix_estime = max(1.0, round(prix_estime, 1))
+
+    return {
+        "from_city":      from_city,
+        "to_city":        to_city,
+        "distance_km":    round(float(distance_km), 1),
+        "prix_estime":    prix_estime,
+        "mae_eur":        _ml_reg_mae,
+        "pct_within_20eur": _ml_reg_pct20,
+        "note": f"Estimation indicative ±{_ml_reg_mae:.0f} € (modèle entraîné sur tarifs catalogue SNCF)",
     }
 
 

@@ -317,50 +317,52 @@ export default function SearchResult() {
             {activeTab === "results" && <>
 
 
-            {end?.latitude && (
-                <WeatherWidget
-                    lat={end.latitude}
-                    lon={end.longitude}
-                    cityName={trajet.to_city}
-                    travelDate={travelDate}
-                />
-            )}
+            <div className="sr-row-2cols">
+                {end?.latitude && (
+                    <WeatherWidget
+                        lat={end.latitude}
+                        lon={end.longitude}
+                        cityName={trajet.to_city}
+                        travelDate={travelDate}
+                    />
+                )}
 
-            {trajet.co2_train_kg && trajet.co2_voiture_kg && (
-                <section className="sr-card">
-                    <h2 className="sr-section-title">
-                        <FaLeaf className="sr-section-icon" /> Impact carbone
-                    </h2>
-                    <div className="sr-transport-bars">
-                        <div className="sr-bar-row">
-                            <span className="sr-bar-label"><FaTrain /> Train</span>
-                            <div className="sr-bar-track">
-                                <div className="sr-bar-fill sr-bar-fill-train"
-                                     style={{ width: `${pct(trajet.co2_train_kg)}%` }} />
-                            </div>
-                            <span className="sr-bar-val">{trajet.co2_train_kg.toFixed(1)} kg</span>
-                        </div>
-                        <div className="sr-bar-row">
-                            <span className="sr-bar-label"><FaCar /> Voiture</span>
-                            <div className="sr-bar-track">
-                                <div className="sr-bar-fill sr-bar-fill-car"
-                                     style={{ width: `${pct(trajet.co2_voiture_kg)}%` }} />
-                            </div>
-                            <span className="sr-bar-val">{trajet.co2_voiture_kg.toFixed(1)} kg</span>
-                        </div>
-                        {trajet.co2_avion_kg && (
+                {trajet.co2_train_kg && trajet.co2_voiture_kg && (
+                    <section className="sr-card">
+                        <h2 className="sr-section-title">
+                            <FaLeaf className="sr-section-icon" /> Impact carbone
+                        </h2>
+                        <div className="sr-transport-bars">
                             <div className="sr-bar-row">
-                                <span className="sr-bar-label"><FaPlane /> Avion</span>
+                                <span className="sr-bar-label"><FaTrain /> Train</span>
                                 <div className="sr-bar-track">
-                                    <div className="sr-bar-fill sr-bar-fill-plane"
-                                         style={{ width: `${pct(trajet.co2_avion_kg)}%` }} />
+                                    <div className="sr-bar-fill sr-bar-fill-train"
+                                         style={{ width: `${pct(trajet.co2_train_kg)}%` }} />
                                 </div>
-                                <span className="sr-bar-val">{trajet.co2_avion_kg.toFixed(1)} kg</span>
+                                <span className="sr-bar-val">{trajet.co2_train_kg.toFixed(1)} kg</span>
                             </div>
-                        )}
-                    </div>
-                </section>
-            )}
+                            <div className="sr-bar-row">
+                                <span className="sr-bar-label"><FaCar /> Voiture</span>
+                                <div className="sr-bar-track">
+                                    <div className="sr-bar-fill sr-bar-fill-car"
+                                         style={{ width: `${pct(trajet.co2_voiture_kg)}%` }} />
+                                </div>
+                                <span className="sr-bar-val">{trajet.co2_voiture_kg.toFixed(1)} kg</span>
+                            </div>
+                            {trajet.co2_avion_kg && (
+                                <div className="sr-bar-row">
+                                    <span className="sr-bar-label"><FaPlane /> Avion</span>
+                                    <div className="sr-bar-track">
+                                        <div className="sr-bar-fill sr-bar-fill-plane"
+                                             style={{ width: `${pct(trajet.co2_avion_kg)}%` }} />
+                                    </div>
+                                    <span className="sr-bar-val">{trajet.co2_avion_kg.toFixed(1)} kg</span>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
+            </div>
 
             <CO2Equivalences co2SavedKg={co2Saved} />
 

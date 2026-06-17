@@ -978,3 +978,16 @@ body.dark .sr-alert-form input { background: var(--bg-section); border-color: va
     font-size: 0.95rem;
     flex-shrink: 0;
 }
+
+.sr-row-2cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 700px) {
+    .sr-row-2cols {
+        grid-template-columns: 1fr;
+    }
+}

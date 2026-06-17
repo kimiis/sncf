@@ -174,9 +174,6 @@ export default function SearchResult() {
         api.get("/sncf/departures", { params: { from_city: fromCity, count: 12, ...(travelDate && { date: travelDate }) } })
             .then(({ data }) => setAllDepartures(data.departures || []))
             .catch(() => {});
-        api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
-            .then(({ data }) => setMlPrediction(data))
-            .catch(() => {});
         api.get("/sncf/ml/predict-price-exact", { params: { from_city: fromCity, to_city: toCity } })
             .then(({ data }) => setMlExact(data))
             .catch(() => {});

@@ -17,7 +17,7 @@ import {
     FaTrain, FaRoad, FaClock, FaEuroSign, FaLeaf, FaCar, FaPlane,
     FaHotel, FaBicycle, FaCompass, FaParking, FaBus,
     FaUtensils, FaBeer, FaLandmark, FaTree, FaRunning,
-    FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp,
+    FaMapMarkerAlt, FaCalendarAlt,
     FaExclamationTriangle, FaTimes, FaStar, FaRegStar, FaCircle, FaSearch,
 } from "react-icons/fa";
 import api from "../api/axios";
@@ -96,13 +96,11 @@ export default function SearchResult() {
     const [poiLoading, setPoiLoading]       = useState(false);
     const [error, setError]                 = useState("");
     const [activeJourneyIdx, setActiveJourneyIdx] = useState(0);
-    const [showDepartures, setShowDepartures] = useState(false);
     const [activeTab, setActiveTab] = useState("results");
 
     const [disruptions,    setDisruptions]    = useState([]);
     const [showDisruptions, setShowDisruptions] = useState(true);
     const [allDepartures,  setAllDepartures]  = useState([]);
-    const [mlPrediction,   setMlPrediction]   = useState(null);
     const [mlExact,        setMlExact]        = useState(null);
     const [localTransport, setLocalTransport] = useState(null);
 

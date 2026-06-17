@@ -419,8 +419,6 @@ export default function SearchResult() {
                 )}
             </div>
 
-            <CO2Equivalences co2SavedKg={co2Saved} />
-
             <section className="sr-card">
                 <h2 className="sr-section-title">
                     <FaCompass className="sr-section-icon" /> Afficher sur la carte
@@ -634,6 +632,8 @@ export default function SearchResult() {
                     </div>
                 </section>
             )}
+
+            <CO2Equivalences co2SavedKg={co2Saved} />
 
             </>}
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
     MapContainer,
     TileLayer,
@@ -18,7 +18,7 @@ import {
     FaHotel, FaBicycle, FaCompass, FaParking, FaBus,
     FaUtensils, FaBeer, FaLandmark, FaTree, FaRunning,
     FaMapMarkerAlt, FaCalendarAlt, FaChevronDown, FaChevronUp,
-    FaExclamationTriangle, FaTimes, FaStar, FaRegStar, FaCircle,
+    FaExclamationTriangle, FaTimes, FaStar, FaRegStar, FaCircle, FaSearch,
 } from "react-icons/fa";
 import api from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
@@ -66,6 +66,30 @@ export default function SearchResult() {
     const toCity   = params.get("to");
     const travelDate = params.get("date") || "";
     const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    const [showSearch, setShowSearch]         = useState(false);
+    const [newFrom, setNewFrom]               = useState(fromCity || "");
+    const [newTo, setNewTo]                   = useState(toCity || "");
+    const [newDate, setNewDate]               = useState(travelDate || "");
+    const [sugFrom, setSugFrom]               = useState([]);
+    const [sugTo, setSugTo]                   = useState([]);
+    const searchBarRef                        = useRef(null);
+
+    const handleNewSearch = () => {
+        if (!newFrom || !newTo) return;
+        const p = new URLSearchParams({ from: newFrom, to: newTo });
+        if (newDate) p.set("date", newDate);
+        navigate(`/search?${p.toString()}`);
+    };
+
+    const fetchSug = async (value, setter) => {
+        if (!value) { setter([]); return; }
+        try {
+            const { data } = await api.get(`/sncf/autocomplete?q=${value}`);
+            setter(Array.isArray(data) ? data.slice(0, 5) : []);
+        } catch { setter([]); }
+    };
 
     const [trajet, setTrajet]               = useState(null);
     const [poi, setPoi]                     = useState(null);
@@ -248,8 +272,65 @@ export default function SearchResult() {
                             </span>
                         )}
                     </div>
-                    <ShareButton trajet={trajet} />
+                    <div className="sr-hero-actions">
+                        <ShareButton trajet={trajet} />
+                        <button
+                            className="sr-new-search-btn"
+                            onClick={() => { setShowSearch(s => !s); setNewFrom(fromCity); setNewTo(toCity); setNewDate(travelDate); }}
+                        >
+                            <FaSearch /> Nouvelle recherche
+                        </button>
+                    </div>
                 </div>
+
+                {showSearch && (
+                    <div className="sr-search-overlay" ref={searchBarRef}>
+                        <div className="sr-search-bar">
+                            <div className="sr-search-field">
+                                <label>Départ</label>
+                                <input
+                                    type="text"
+                                    value={newFrom}
+                                    placeholder="Ville de départ"
+                                    onChange={e => { setNewFrom(e.target.value); fetchSug(e.target.value, setSugFrom); }}
+                                />
+                                {sugFrom.length > 0 && (
+                                    <ul className="sr-search-sug">
+                                        {sugFrom.map((s, i) => (
+                                            <li key={i} onClick={() => { setNewFrom(s); setSugFrom([]); }}>{s}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                            <div className="sr-search-field">
+                                <label>Arrivée</label>
+                                <input
+                                    type="text"
+                                    value={newTo}
+                                    placeholder="Ville d'arrivée"
+                                    onChange={e => { setNewTo(e.target.value); fetchSug(e.target.value, setSugTo); }}
+                                />
+                                {sugTo.length > 0 && (
+                                    <ul className="sr-search-sug">
+                                        {sugTo.map((s, i) => (
+                                            <li key={i} onClick={() => { setNewTo(s); setSugTo([]); }}>{s}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                            <div className="sr-search-field">
+                                <label>Date</label>
+                                <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
+                            </div>
+                            <button className="sr-search-submit" onClick={handleNewSearch}>
+                                <FaSearch /> Rechercher
+                            </button>
+                            <button className="sr-search-cancel" onClick={() => setShowSearch(false)}>
+                                <FaTimes />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </section>
 
             {disruptions.length > 0 && showDisruptions && (
@@ -295,8 +376,8 @@ export default function SearchResult() {
                     </span>
                     <span className="sr-stat-label">
                         Prix estimé
-                        {mlExact?.pct_within_20eur
-                            ? ` · ${mlExact.pct_within_20eur}% prédictions à ±20€`
+                        {mlExact?.mae_eur
+                            ? ` · précision ±${mlExact.mae_eur} €`
                             : ""}
                     </span>
                 </div>

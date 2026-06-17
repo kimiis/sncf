@@ -304,6 +304,15 @@ export default function SearchResult() {
                     <FaTrain /> Résultats
                 </button>
                 <button
+                    className={`sr-tab ${activeTab === "departures" ? "sr-tab--active" : ""}`}
+                    onClick={() => setActiveTab("departures")}
+                >
+                    <FaTrain /> Départs depuis {fromCity}
+                    {(prochainsDepartsData.length > 0 || allDepartures.length > 0) && (
+                        <span className="sr-tab-badge">{prochainsDepartsData.length || allDepartures.length}</span>
+                    )}
+                </button>
+                <button
                     className={`sr-tab ${activeTab === "transport" ? "sr-tab--active" : ""}`}
                     onClick={() => setActiveTab("transport")}
                 >
@@ -314,117 +323,55 @@ export default function SearchResult() {
                 </button>
             </div>
 
-            {activeTab === "results" && <>
-
-
-            <div className="sr-row-2cols">
-                {end?.latitude && (
-                    <WeatherWidget
-                        lat={end.latitude}
-                        lon={end.longitude}
-                        cityName={trajet.to_city}
-                        travelDate={travelDate}
-                    />
-                )}
-
-                {trajet.co2_train_kg && trajet.co2_voiture_kg && (
-                    <section className="sr-card">
-                        <h2 className="sr-section-title">
-                            <FaLeaf className="sr-section-icon" /> Impact carbone
-                        </h2>
-                        <div className="sr-transport-bars">
-                            <div className="sr-bar-row">
-                                <span className="sr-bar-label"><FaTrain /> Train</span>
-                                <div className="sr-bar-track">
-                                    <div className="sr-bar-fill sr-bar-fill-train"
-                                         style={{ width: `${pct(trajet.co2_train_kg)}%` }} />
-                                </div>
-                                <span className="sr-bar-val">{trajet.co2_train_kg.toFixed(1)} kg</span>
-                            </div>
-                            <div className="sr-bar-row">
-                                <span className="sr-bar-label"><FaCar /> Voiture</span>
-                                <div className="sr-bar-track">
-                                    <div className="sr-bar-fill sr-bar-fill-car"
-                                         style={{ width: `${pct(trajet.co2_voiture_kg)}%` }} />
-                                </div>
-                                <span className="sr-bar-val">{trajet.co2_voiture_kg.toFixed(1)} kg</span>
-                            </div>
-                            {trajet.co2_avion_kg && (
-                                <div className="sr-bar-row">
-                                    <span className="sr-bar-label"><FaPlane /> Avion</span>
-                                    <div className="sr-bar-track">
-                                        <div className="sr-bar-fill sr-bar-fill-plane"
-                                             style={{ width: `${pct(trajet.co2_avion_kg)}%` }} />
-                                    </div>
-                                    <span className="sr-bar-val">{trajet.co2_avion_kg.toFixed(1)} kg</span>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                )}
-            </div>
-
-            <CO2Equivalences co2SavedKg={co2Saved} />
-
-            {(prochainsDepartsData.length > 0 || allDepartures.length > 0) && (
+            {activeTab === "departures" && (
                 <section className="sr-card">
-                    <button
-                        className="sr-collapse-header"
-                        onClick={() => setShowDepartures(v => !v)}
-                    >
-                        <span className="sr-section-title" style={{ margin: 0 }}>
-                            <FaTrain className="sr-section-icon" /> Départs depuis {fromCity}
-                        </span>
-                        {showDepartures ? <FaChevronUp /> : <FaChevronDown />}
-                    </button>
-
-                    {showDepartures && (
+                    {prochainsDepartsData.length > 0 && (
                         <>
-                            {prochainsDepartsData.length > 0 && (
-                                <>
-                                    <p className="sr-departures-subtitle">Prochains départs vers {toCity}</p>
-                                    <div className="sr-departs-scroll">
-                                        {prochainsDepartsData.map((dep, idx) => (
-                                            <button
-                                                key={idx}
-                                                className={`sr-depart-chip ${activeJourneyIdx === idx ? "active" : ""}`}
-                                                onClick={() => setActiveJourneyIdx(idx)}
-                                            >
-                                                <span className="sr-depart-times">
-                                                    {dep.depart?.slice(0,2)}h{dep.depart?.slice(2,4)}
-                                                    {" → "}
-                                                    {dep.arrivee?.slice(0,2)}h{dep.arrivee?.slice(2,4)}
-                                                </span>
-                                                <span className="sr-depart-dur">{dep.duree}</span>
-                                                {dep.nb_changements > 0 && (
-                                                    <span className="sr-depart-chg">{dep.nb_changements} chgt</span>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-
-                            {allDepartures.length > 0 && (
-                                <>
-                                    <p className="sr-departures-subtitle">Tous les départs</p>
-                                    <div className="sr-departures-table">
-                                        {allDepartures.map((d, i) => (
-                                            <div key={i} className="sr-departure-row">
-                                                <span className="sr-dep-heure">{d.heure}</span>
-                                                <span className="sr-dep-mode">{d.mode}</span>
-                                                <span className="sr-dep-direction">{d.direction}</span>
-                                                <span className="sr-dep-num">n°{d.train_number}</span>
-                                                {d.realtime && <span className="sr-dep-rt"><FaCircle /> live</span>}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
+                            <p className="sr-departures-subtitle">Prochains départs vers {toCity}</p>
+                            <div className="sr-departs-scroll">
+                                {prochainsDepartsData.map((dep, idx) => (
+                                    <button
+                                        key={idx}
+                                        className={`sr-depart-chip ${activeJourneyIdx === idx ? "active" : ""}`}
+                                        onClick={() => setActiveJourneyIdx(idx)}
+                                    >
+                                        <span className="sr-depart-times">
+                                            {dep.depart?.slice(0,2)}h{dep.depart?.slice(2,4)}
+                                            {" → "}
+                                            {dep.arrivee?.slice(0,2)}h{dep.arrivee?.slice(2,4)}
+                                        </span>
+                                        <span className="sr-depart-dur">{dep.duree}</span>
+                                        {dep.nb_changements > 0 && (
+                                            <span className="sr-depart-chg">{dep.nb_changements} chgt</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
                         </>
+                    )}
+                    {allDepartures.length > 0 && (
+                        <>
+                            <p className="sr-departures-subtitle">Tous les départs</p>
+                            <div className="sr-departures-table">
+                                {allDepartures.map((d, i) => (
+                                    <div key={i} className="sr-departure-row">
+                                        <span className="sr-dep-heure">{d.heure}</span>
+                                        <span className="sr-dep-mode">{d.mode}</span>
+                                        <span className="sr-dep-direction">{d.direction}</span>
+                                        <span className="sr-dep-num">n°{d.train_number}</span>
+                                        {d.realtime && <span className="sr-dep-rt"><FaCircle /> live</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                    {prochainsDepartsData.length === 0 && allDepartures.length === 0 && (
+                        <p className="sr-departures-subtitle">Aucun départ disponible pour le moment.</p>
                     )}
                 </section>
             )}
+
+            {activeTab === "results" && <>
 
             <section className="sr-card">
                 <h2 className="sr-section-title">
@@ -639,6 +586,54 @@ export default function SearchResult() {
                     </div>
                 </section>
             )}
+
+            <CO2Equivalences co2SavedKg={co2Saved} />
+
+            <div className="sr-row-2cols">
+                {end?.latitude && (
+                    <WeatherWidget
+                        lat={end.latitude}
+                        lon={end.longitude}
+                        cityName={trajet.to_city}
+                        travelDate={travelDate}
+                    />
+                )}
+                {trajet.co2_train_kg && trajet.co2_voiture_kg && (
+                    <section className="sr-card">
+                        <h2 className="sr-section-title">
+                            <FaLeaf className="sr-section-icon" /> Impact carbone
+                        </h2>
+                        <div className="sr-transport-bars">
+                            <div className="sr-bar-row">
+                                <span className="sr-bar-label"><FaTrain /> Train</span>
+                                <div className="sr-bar-track">
+                                    <div className="sr-bar-fill sr-bar-fill-train"
+                                         style={{ width: `${pct(trajet.co2_train_kg)}%` }} />
+                                </div>
+                                <span className="sr-bar-val">{trajet.co2_train_kg.toFixed(1)} kg</span>
+                            </div>
+                            <div className="sr-bar-row">
+                                <span className="sr-bar-label"><FaCar /> Voiture</span>
+                                <div className="sr-bar-track">
+                                    <div className="sr-bar-fill sr-bar-fill-car"
+                                         style={{ width: `${pct(trajet.co2_voiture_kg)}%` }} />
+                                </div>
+                                <span className="sr-bar-val">{trajet.co2_voiture_kg.toFixed(1)} kg</span>
+                            </div>
+                            {trajet.co2_avion_kg && (
+                                <div className="sr-bar-row">
+                                    <span className="sr-bar-label"><FaPlane /> Avion</span>
+                                    <div className="sr-bar-track">
+                                        <div className="sr-bar-fill sr-bar-fill-plane"
+                                             style={{ width: `${pct(trajet.co2_avion_kg)}%` }} />
+                                    </div>
+                                    <span className="sr-bar-val">{trajet.co2_avion_kg.toFixed(1)} kg</span>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
+            </div>
 
             </>}
 

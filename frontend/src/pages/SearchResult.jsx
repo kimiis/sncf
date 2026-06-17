@@ -79,6 +79,7 @@ export default function SearchResult() {
     const [showDisruptions, setShowDisruptions] = useState(true);
     const [allDepartures,  setAllDepartures]  = useState([]);
     const [mlPrediction,   setMlPrediction]   = useState(null);
+    const [mlExact,        setMlExact]        = useState(null);
     const [localTransport, setLocalTransport] = useState(null);
 
     const [showHotels,     setShowHotels]     = useState(false);
@@ -153,6 +154,9 @@ export default function SearchResult() {
             .catch(() => {});
         api.get("/sncf/ml/predict-price", { params: { from_city: fromCity, to_city: toCity } })
             .then(({ data }) => setMlPrediction(data))
+            .catch(() => {});
+        api.get("/sncf/ml/predict-price-exact", { params: { from_city: fromCity, to_city: toCity } })
+            .then(({ data }) => setMlExact(data))
             .catch(() => {});
     }, [fromCity, toCity, travelDate, isAuthenticated]);
 
@@ -283,15 +287,17 @@ export default function SearchResult() {
                 <div className="sr-stat">
                     <FaEuroSign className="sr-stat-icon" />
                     <span className="sr-stat-val">
-                        {mlPrediction?.price_ranges?.[mlPrediction.prediction]
-                            ? mlPrediction.price_ranges[mlPrediction.prediction]
+                        {mlExact?.prix_estime
+                            ? `~${mlExact.prix_estime} €`
                             : trajet.prix_indicatif
                             ? `${Math.round(trajet.prix_indicatif)} €`
                             : "—"}
                     </span>
                     <span className="sr-stat-label">
-                        Prix indicatif
-                        {mlPrediction?.confidence ? ` · ${Math.round(mlPrediction.confidence * 100)}% confiance` : ""}
+                        Prix estimé
+                        {mlExact?.pct_within_20eur
+                            ? ` · ${mlExact.pct_within_20eur}% prédictions à ±20€`
+                            : ""}
                     </span>
                 </div>
             </div>

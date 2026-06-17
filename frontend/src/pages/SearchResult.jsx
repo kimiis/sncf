@@ -283,9 +283,13 @@ export default function SearchResult() {
                 <div className="sr-stat">
                     <FaEuroSign className="sr-stat-icon" />
                     <span className="sr-stat-val">
-                        {trajet.prix_indicatif ? `${Math.round(trajet.prix_indicatif)} €` : "—"}
+                        {mlPrediction?.price_ranges?.[mlPrediction.prediction]
+                            ? mlPrediction.price_ranges[mlPrediction.prediction]
+                            : trajet.prix_indicatif
+                            ? `${Math.round(trajet.prix_indicatif)} €`
+                            : "—"}
                     </span>
-                    <span className="sr-stat-label">Prix indicatif</span>
+                    <span className="sr-stat-label">Prix indicatif {mlPrediction?.prediction ? `· ${mlPrediction.prediction}` : ""}</span>
                 </div>
             </div>
 

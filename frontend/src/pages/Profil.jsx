@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
-import { LuUser, LuHeart, LuHistory, LuMoon, LuSun, LuLogOut, LuTrain, LuArrowRight, LuClock, LuLeaf, LuPencil, LuX, LuTrophy, LuSprout, LuTreePine, LuStar, LuLock, LuGlobe, LuCar } from "react-icons/lu";
+import { LuUser, LuHeart, LuHistory, LuMoon, LuSun, LuLogOut, LuTrain, LuArrowRight, LuClock, LuLeaf, LuPencil, LuX, LuTrophy, LuSprout, LuTreePine, LuStar, LuLock, LuGlobe, LuCar, LuTrash2, LuAlertTriangle } from "react-icons/lu";
 import api from "../api/axios";
 import "../styles/profil.css";
 
@@ -21,7 +21,11 @@ function Profil() {
     const [favoris, setFavoris] = useState([]);
     const [leaderboard, setLeaderboard] = useState([]);
     const [defiProgress, setDefiProgress] = useState(0);
-    const DEFI_OBJECTIF = 50; // kg CO2 à économiser cette semaine
+    const DEFI_OBJECTIF = 50;
+
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState("");
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         const onExpired = () => navigate("/");
@@ -137,6 +141,19 @@ function Profil() {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (deleteConfirm !== "SUPPRIMER") return;
+        setDeleteLoading(true);
+        try {
+            await api.delete(`/users/user/${id}`);
+            localStorage.removeItem("token");
+            navigate("/");
+        } catch (err) {
+            console.error("Erreur suppression compte:", err);
+            setDeleteLoading(false);
+        }
+    };
+
     if (!userData) {
         return <div className="profil-loading">Chargement du profil...</div>;
     }
@@ -249,6 +266,9 @@ function Profil() {
                         </div>
                         <button className="edit-profile-btn" onClick={openEdit}>
                             <LuPencil /> Modifier mon profil
+                        </button>
+                        <button className="delete-account-btn" onClick={() => { setDeleteOpen(true); setDeleteConfirm(""); }}>
+                            <LuTrash2 /> Supprimer mon compte
                         </button>
                     </div>
                 )}
@@ -374,6 +394,36 @@ function Profil() {
                                 {editLoading ? "Enregistrement..." : "Enregistrer"}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modale suppression compte */}
+            {deleteOpen && (
+                <div className="modal-overlay" onClick={() => setDeleteOpen(false)}>
+                    <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3><LuAlertTriangle className="delete-warning-icon" /> Supprimer mon compte</h3>
+                            <button className="modal-close" onClick={() => setDeleteOpen(false)}><LuX /></button>
+                        </div>
+                        <div className="delete-modal-body">
+                            <p>Cette action est <strong>irréversible</strong>. Toutes tes données (historique, favoris, profil) seront définitivement supprimées.</p>
+                            <p>Pour confirmer, tape <strong>SUPPRIMER</strong> ci-dessous :</p>
+                            <input
+                                className="delete-confirm-input"
+                                type="text"
+                                placeholder="SUPPRIMER"
+                                value={deleteConfirm}
+                                onChange={(e) => setDeleteConfirm(e.target.value)}
+                            />
+                            <button
+                                className="delete-confirm-btn"
+                                onClick={handleDeleteAccount}
+                                disabled={deleteConfirm !== "SUPPRIMER" || deleteLoading}
+                            >
+                                <LuTrash2 /> {deleteLoading ? "Suppression..." : "Supprimer définitivement"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

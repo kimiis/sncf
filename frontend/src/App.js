@@ -5,8 +5,11 @@ import { ThemeProvider } from "./context/ThemeContext";
 import Home from "./pages/Home.jsx";
 import Index from "./pages/Index.jsx";
 import NavBar from "./components/NavBar.jsx";
+import Footer from "./components/Footer.jsx";
 import Profil from "./pages/Profil.jsx";
 import SearchResult from "./pages/SearchResult.jsx";
+import FAQ from "./pages/FAQ.jsx";
+import MentionsLegales from "./pages/MentionsLegales.jsx";
 
 import PrivateRoute from "./components/PrivateRoute";
 import './index.css';
@@ -27,48 +30,26 @@ function AppWrapper() {
 
 function App() {
   const location = useLocation();
-  const isAuthPage = location.pathname === "/" || location.pathname === "/login";
+  const isSplash = location.pathname === "/" || location.pathname === "/login";
 
   return (
       <>
-        {!isAuthPage && <NavBar />}
+        {!isSplash && <NavBar />}
         <Routes>
-          {/* Pages publiques */}
           <Route path="/" element={<Home />} />
           <Route path="/index" element={<Index />} />
-            <Route path="/search" element={<SearchResult />} />
-            <Route path="/inspiration" element={<Inspiration />} />
+          <Route path="/search" element={<SearchResult />} />
+          <Route path="/inspiration" element={<Inspiration />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/mentions-legales" element={<MentionsLegales />} />
 
-          {/*/!* Pages accessibles à tout utilisateur connecté *!/*/}
           <Route element={<PrivateRoute />}>
             <Route path="/profil" element={<Profil />} />
           </Route>
 
-          {/*/!* Pages accessibles à employee et admin *!/*/}
-          {/*<Route element={<PrivateRoute roles={["employee", "admin"]} />}>*/}
-          {/*  <Route path="/planning" element={<Planning />} />*/}
-          {/*  <Route path="/reservations" element={<Reservations />} />*/}
-          {/*</Route>*/}
-
-          {/*/!* Pages accessibles à employee, admin et manager *!/*/}
-          {/*<Route element={<PrivateRoute roles={["employee", "admin", "manager"]} />}>*/}
-          {/*  <Route path="/users/:id" element={<InfosClient />} />*/}
-          {/*</Route>*/}
-
-          {/*/!* Pages accessibles à admin et manager *!/*/}
-          {/*<Route element={<PrivateRoute roles={["admin", "manager"]} />}>*/}
-          {/*  <Route path="/admin" element={<AdminDashboard />} />*/}
-          {/*  <Route path="/plannings" element={<Plannings />} />*/}
-          {/*  <Route path="/appointmentAsked" element={<AppointmentAsked />} />*/}
-          {/*  <Route path="/clients" element={<Clients />} />*/}
-          {/*  <Route path="/employees" element={<Employees />} />*/}
-          {/*  <Route path="/invoices" element={<Invoices />} />*/}
-          {/*  <Route path="/employes/:id" element={<EmployeeDetails />} />*/}
-          {/*</Route>*/}
-
-          {/* Page d'accès refusé */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
         </Routes>
+        {!isSplash && <Footer />}
       </>
   );
 }

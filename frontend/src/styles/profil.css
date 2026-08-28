@@ -709,3 +709,68 @@ body.dark .profil-page {
 .lb-name { flex: 1; font-weight: 600; }
 .lb-co2 { display: flex; align-items: center; gap: 4px; font-weight: 700; color: #8B9E6A; }
 .leaf-icon { font-size: 0.8rem; }
+
+/* === SUPPRESSION COMPTE === */
+.delete-account-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1rem;
+    padding: 0.6rem 1.2rem;
+    background: transparent;
+    border: 1.5px solid #c0392b;
+    color: #c0392b;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.delete-account-btn:hover {
+    background: #c0392b;
+    color: white;
+}
+
+.delete-modal { max-width: 440px; }
+
+.delete-warning-icon {
+    color: #c0392b;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.delete-modal-body { padding: 0 0 0.5rem; }
+.delete-modal-body p { font-size: 0.93rem; color: var(--text-secondary); margin-bottom: 0.8rem; line-height: 1.5; }
+
+.delete-confirm-input {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+    font-family: monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+.delete-confirm-input:focus { outline: none; border-color: #c0392b; }
+
+.delete-confirm-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0.75rem;
+    background: #c0392b;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.delete-confirm-btn:hover:not(:disabled) { background: #a93226; }
+.delete-confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
